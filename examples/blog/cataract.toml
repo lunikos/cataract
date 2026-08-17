@@ -1,0 +1,33 @@
+[project]
+name = "blog"
+version = "0.1.0"
+
+[paths]
+app = "app"
+routes = "app/routes"
+layouts = "app/layouts"
+islands = "app/islands"
+lib = "app/lib"
+public = "app/public"
+out = ".cataract"
+dist = "dist"
+# Relative to this file, so a checkout builds without CATARACT_RUNTIME.
+runtime = "../../src/runtime"
+
+[server]
+host = "127.0.0.1"
+port = 3000
+max_concurrency = 512
+max_body_bytes = 1048576
+keep_alive_ms = 5000
+header_timeout_ms = 10000
+log_level = "info"
+
+[build]
+optimize = true
+chpl_flags = ""
+
+[security]
+csp = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+hsts_seconds = 0
+allowed_origins = ""

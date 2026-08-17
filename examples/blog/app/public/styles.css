@@ -1,0 +1,133 @@
+:root {
+  color-scheme: light dark;
+  --bg: #fbfbfa;
+  --fg: #1c1c1a;
+  --muted: #6c6c68;
+  --line: #e3e3df;
+  --accent: #1a5f7a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131315;
+    --fg: #ebebe8;
+    --muted: #9a9a95;
+    --line: #2b2b2e;
+    --accent: #7fc4dd;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0 auto;
+  max-width: 46rem;
+  padding: 2rem 1.25rem 4rem;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.65 ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+a { color: var(--accent); }
+
+.skip {
+  position: absolute;
+  left: -9999px;
+}
+.skip:focus {
+  position: static;
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+
+header.site {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 2.5rem;
+}
+
+header.site .brand {
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+
+header.site nav {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.9375rem;
+}
+
+h1 {
+  font-size: 1.75rem;
+  letter-spacing: -0.02em;
+  margin: 0 0 1rem;
+}
+
+h2 {
+  font-size: 1.125rem;
+  margin: 2.5rem 0 0.75rem;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+  background: color-mix(in srgb, var(--line) 60%, transparent);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+
+ul.posts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+ul.posts li {
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+ul.posts a {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+ul.posts p {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+}
+
+.date {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+button.counter {
+  font: inherit;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+}
+
+button.counter:hover { border-color: var(--accent); }
+
+footer {
+  margin-top: 4rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.cataract-error h1 { margin-top: 2rem; }
