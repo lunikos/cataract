@@ -1,0 +1,6 @@
+.cataract/
+dist/
+bin/
+*.o
+*.dSYM/
+.DS_Store
