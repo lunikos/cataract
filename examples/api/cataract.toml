@@ -1,0 +1,29 @@
+[project]
+name = "tasks-api"
+version = "0.1.0"
+
+[paths]
+app = "app"
+routes = "app/routes"
+lib = "app/lib"
+out = ".cataract"
+dist = "dist"
+runtime = "../../src/runtime"
+
+[server]
+host = "127.0.0.1"
+port = 3001
+max_concurrency = 512
+max_body_bytes = 65536
+keep_alive_ms = 5000
+header_timeout_ms = 10000
+log_level = "info"
+
+[build]
+optimize = true
+
+# A service that returns no markup advertises nowhere to load any from.
+[security]
+csp = "default-src 'none'; frame-ancestors 'none'"
+hsts_seconds = 0
+allowed_origins = ""
