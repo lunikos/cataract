@@ -16,5 +16,8 @@ defineIsland("uptime", (el, props) => {
   };
 
   render();
-  if (props.live) setInterval(render, 1000);
+  if (!props.live) return;
+
+  const timer = setInterval(render, 1000);
+  return () => clearInterval(timer);
 });
