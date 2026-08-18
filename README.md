@@ -4,13 +4,13 @@
 
 A full-stack web framework for [Chapel](https://chapel-lang.org). File-system
 routing, server-side rendering, partial hydration and an HTTP/1.1 server on raw
-BSD sockets, compiled into one binary. Application code is Chapel throughout —
+BSD sockets, compiled into one binary. Application code is Chapel throughout;
 there is no template language.
 
 <br clear="left">
 
 Requires Chapel 2.x with `chpl` on `PATH`, and a POSIX host with a C compiler.
-Source-only for now — no package manager, clone and build:
+Source-only for now, no package manager, clone and build:
 
 ```
 git clone https://github.com/lunikos/cataract.git && cd cataract
