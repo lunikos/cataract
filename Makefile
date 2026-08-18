@@ -1,4 +1,5 @@
 CHPL      ?= chpl
+CHPLCHECK ?= chplcheck
 CLI_SRC   := src/cataract.chpl
 CLI_MODS  := -M src/cli -M src/compiler
 CLI_BIN   := bin/cataract
@@ -7,7 +8,7 @@ CHPLFLAGS ?= --fast
 EXAMPLES  := blog api docs dashboard
 EXAMPLE   ?= blog
 
-.PHONY: all cli examples dev routes clean distclean $(EXAMPLES)
+.PHONY: all cli examples lint dev routes clean distclean $(EXAMPLES)
 
 all: cli
 
@@ -26,6 +27,10 @@ $(EXAMPLES): %: cli
 run-%: %
 	@name=$$(grep -m1 '^name' examples/$*/cataract.toml | cut -d'"' -f2); \
 	./examples/$*/dist/$$name
+
+# Rule selection and the 100-column limit live in .chplcheck.cfg.
+lint:
+	$(CHPLCHECK) $$(git ls-files '*.chpl')
 
 dev: cli
 	$(CLI_BIN) dev --root examples/$(EXAMPLE)
