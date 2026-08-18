@@ -33,7 +33,6 @@ module Diagnostics {
   record Bag {
     var items: list(Diagnostic);
     var errorCount: int = 0;
-    /* Without this watermark every checkpoint reprints all earlier diagnostics. */
     var reported: int = 0;
     var showNotes: bool = false;
 

@@ -5,7 +5,6 @@ module HttpClock {
   private const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
                           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-  /* The value changes once a second, so it is memoised behind a lock. */
   private var cacheGate: sync bool = true;
   private var cachedSecond: int(64) = -1;
   private var cachedDate: string = "";

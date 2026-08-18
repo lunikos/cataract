@@ -5,15 +5,11 @@ module Connections {
   private use Logging;
   private use HttpClock only monoMillis;
   private use Time only sleep;
-
-  /* Waiting happens in Chapel: a task parked in a foreign call keeps its worker. */
   private config const minPollSeconds = 0.0002;
   private config const maxPollSeconds = 0.004;
 
   enum ReadState { ok, eof, timeout, failed }
 
-  /* Owns the socket. [start, stop) is unconsumed; leftovers head the next
-     pipelined request, so the window compacts rather than resets. */
   class Connection {
     var sock: owned Socket?;
     var inDom: domain(1);
