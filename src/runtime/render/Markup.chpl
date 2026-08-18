@@ -37,7 +37,7 @@ module Markup {
       buf.append(">");
     }
 
-    proc ref el(tag: string, const ref content, attrs...?n) {
+    proc ref el(tag: string, const ref content, attrs...) {
       open(tag, (...attrs));
       text(content);
       close();

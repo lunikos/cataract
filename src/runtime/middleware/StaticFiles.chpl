@@ -167,6 +167,7 @@ module StaticFiles {
   }
 
   /* Content-derived: an ETag must be stable across restarts and replicas. */
+  @chplcheck.ignore("CamelCaseFunctions", "fnv1a is the algorithm's own name")
   proc fnv1a(const ref b: Bytes): uint(64) {
     var h: uint(64) = 0xcbf29ce484222325;
     for i in 0..<b.len {
