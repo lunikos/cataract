@@ -1,4 +1,4 @@
-<img src="assets/emblem.png" alt="" width="72" align="left">
+<img src="assets/emblem.png" alt="" width="72" align="right">
 
 # Cataract
 
@@ -7,7 +7,7 @@ routing, server-side rendering, partial hydration and an HTTP/1.1 server on raw
 BSD sockets, compiled into one binary. Application code is Chapel throughout;
 there is no template language.
 
-<br clear="left">
+<br clear="right">
 
 Requires Chapel 2.x with `chpl` on `PATH`, and a POSIX host with a C compiler.
 Source-only for now, no package manager, clone and build:
@@ -60,4 +60,4 @@ groups, two layouts), `dashboard` (query filters, status codes from a page).
 must pass. Keep comments to architectural context and C-interop caveats, open an
 issue before changing the public API, and report security issues privately.
 
-Version 0.2.0. The public API is not yet stable.
+Version 0.2.1. The public API is not yet stable.
