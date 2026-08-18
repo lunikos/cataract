@@ -60,4 +60,4 @@ groups, two layouts), `dashboard` (query filters, status codes from a page).
 must pass. Keep comments to architectural context and C-interop caveats, open an
 issue before changing the public API, and report security issues privately.
 
-Version 0.1.0. The public API is not yet stable.
+Version 0.2.0. The public API is not yet stable.

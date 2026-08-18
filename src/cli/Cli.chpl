@@ -4,7 +4,7 @@ module Cli {
   private use Diagnostics;
   private use Commands;
 
-  param VERSION = "0.1.0";
+  param VERSION = "0.2.0";
 
   proc usage(): string throws {
     return "cataract " + VERSION + "\n\n" +
