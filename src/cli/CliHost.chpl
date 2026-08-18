@@ -7,8 +7,11 @@ module CliHost {
   private extern proc cat_cli_install_shutdown_handlers(): c_int;
   private extern proc cat_cli_shutdown_requested(): c_int;
   private extern proc cat_cli_use_colour(): c_int;
+  private extern proc cat_cli_mtime_nanos(path: c_ptrConst(c_char)): int(64);
 
   proc sleepMillis(millis: int) do cat_cli_sleep_millis(millis: c_int);
+
+  proc mtimeNanos(path: string): int(64) do return cat_cli_mtime_nanos(path.c_str());
 
   proc installShutdownHandlers(): bool do
     return cat_cli_install_shutdown_handlers() == 0;

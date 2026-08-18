@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 void cat_cli_sleep_millis(int millis) {
@@ -45,4 +46,14 @@ int cat_cli_use_colour(void) {
   const char *no = getenv("NO_COLOR");
   if (no != NULL && no[0] != '\0') return 0;
   return isatty(STDERR_FILENO) && isatty(STDOUT_FILENO);
+}
+
+long long cat_cli_mtime_nanos(const char *path) {
+  struct stat st;
+  if (path == NULL || stat(path, &st) != 0) return 0;
+#if defined(__APPLE__)
+  return (long long)st.st_mtimespec.tv_sec * 1000000000LL + st.st_mtimespec.tv_nsec;
+#else
+  return (long long)st.st_mtim.tv_sec * 1000000000LL + st.st_mtim.tv_nsec;
+#endif
 }

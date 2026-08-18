@@ -11,6 +11,8 @@ module Build {
   private use AppConfig;
   private use Assets;
   private use Emit;
+  private use Map;
+  private use CliHost only mtimeNanos;
 
   record BuildResult {
     var binary: string;
@@ -64,8 +66,7 @@ module Build {
     sort(sortedExtra);
     for f in sortedExtra do args.pushBack(f);
 
-    /* `--fast` costs more time than it saves when the binary is rebuilt on
-       every edit, so dev opts out of it however the project is configured. */
+    /* `--fast` costs more than it saves when every edit rebuilds. */
     if cfg.optimize && !devMode then args.pushBack("--fast");
     for flag in cfg.chplFlags.split(" ") do
       if !flag.strip().isEmpty() then args.pushBack(flag.strip());
@@ -130,16 +131,32 @@ module Build {
     var h: uint(64) = 0xcbf29ce484222325;
     for path in sorted {
       h = mix(h, path);
+      var size = -1;
       try {
-        const size = getFileSize(path);
-        h = mix(h, size:string);
+        size = getFileSize(path);
       } catch {
-        h = mix(h, "?");
       }
-      var diags = new Bag();
-      h = mix(h, fnvHex(readText(path, diags)));
+      const stamp = CliHost.mtimeNanos(path);
+      h = mix(h, size:string);
+      h = mix(h, contentHash(path, size, stamp));
     }
     return h:string;
+  }
+
+  /* Still content-addressed, so reverting an edit is not a change and neither
+     is `touch`. Size and mtime only decide whether the file has to be reread,
+     which at four polls a second is most of the work the watcher does. */
+  private var hashes: map(string, (int, int(64), string));
+
+  private proc contentHash(path: string, size: int, stamp: int(64)): string throws {
+    if stamp != 0 && hashes.contains(path) {
+      const seen = hashes[path];
+      if seen(0) == size && seen(1) == stamp then return seen(2);
+    }
+    var diags = new Bag();
+    const digest = fnvHex(readText(path, diags));
+    if stamp != 0 then hashes[path] = (size, stamp, digest);
+    return digest;
   }
 
   private proc mix(h: uint(64), s: string): uint(64) throws {
