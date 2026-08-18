@@ -60,7 +60,7 @@ module Commands {
                            opts.devMode);
     diags.raiseIfFailed("compile");
 
-    writeln("built ", result.binary, "  (", plan.bundle.pageCount(), " pages, ",
+    writeln(CliHost.green("built"), " ", result.binary, "  (", plan.bundle.pageCount(), " pages, ",
             plan.bundle.apiCount(), " api routes, ", plan.assets.copied,
             " assets) in ", fmt(result.seconds), "s");
     return 0;
@@ -89,11 +89,10 @@ module Commands {
       const cfg = AppConfig.load(joinPath(devOpts.root, devOpts.configPath), cfgBag);
       const baseline = sourceFingerprint(cfg, devOpts.root);
 
-      /* A signal during the compile must not start a server to kill at once. */
       if CliHost.shutdownRequested() then break;
 
       if built != 0 {
-        writeln("build failed; waiting for changes");
+        writeln(CliHost.red("build failed"), "; waiting for changes");
         waitForChange(cfg, devOpts, baseline);
         continue;
       }
@@ -118,7 +117,6 @@ module Commands {
     return 0;
   }
 
-  /* False once a signal asks the loop to end rather than restart. */
   private proc waitForChange(const ref cfg: ProjectConfig, const ref opts: Options,
                              baseline: string): bool throws {
     while sourceFingerprint(cfg, opts.root) == baseline {

@@ -75,7 +75,6 @@ function unmount(el) {
   }
 }
 
-// Called with a Document, an Element, or a removed node of any type.
 function eachIsland(root, selector, fn) {
   if (root.nodeType === 1 && root.matches(selector)) fn(root);
   if (typeof root.querySelectorAll !== "function") return;
