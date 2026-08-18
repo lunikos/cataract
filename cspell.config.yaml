@@ -1,0 +1,53 @@
+version: "0.2"
+
+# Prose in this project is British-spelled (behaviour, sanitised, serialise),
+# which is what en-GB is here for rather than a list of every such word.
+language: en,en-GB
+
+ignorePaths:
+  - .cataract/**
+  - dist/**
+  - bin/**
+  - assets/**
+
+words:
+  # Chapel toolchain and language
+  - chpl
+  - chplcheck
+  - codegen
+  - deinit
+  - qthreads
+  - writeln
+
+  # POSIX, libc and the C interop boundary
+  - cstr
+  - eagain
+  - epipe
+  - errno
+  - getenv
+  - memcpy
+  - nodelay
+  - nonblock
+  - nonblocking
+  - rcvtimeo
+  - sigpipe
+  - sockaddr
+  - strerror
+  - timeval
+
+  # HTTP, HTML and asset handling
+  - backpressure
+  - codepoint
+  - codepoints
+  - hsts
+  - middot
+  - nosniff
+  - stylesheet
+  - webp
+
+  # Identifiers in this codebase
+  - millis
+  - redeployable
+  - rfind
+  - segs
+  - subdirs
