@@ -22,7 +22,8 @@ module Build {
                                    "middleware", "util"];
 
   proc compile(const ref cfg: ProjectConfig, root: string, const ref bundle: Bundle,
-               const ref emitted: Emitted, ref diags: Bag): BuildResult throws {
+               const ref emitted: Emitted, ref diags: Bag,
+               devMode: bool = false): BuildResult throws {
     var result = new BuildResult();
 
     const distDir = resolveIn(root, cfg.distDir);
@@ -63,7 +64,9 @@ module Build {
     sort(sortedExtra);
     for f in sortedExtra do args.pushBack(f);
 
-    if cfg.optimize then args.pushBack("--fast");
+    /* `--fast` costs more time than it saves when the binary is rebuilt on
+       every edit, so dev opts out of it however the project is configured. */
+    if cfg.optimize && !devMode then args.pushBack("--fast");
     for flag in cfg.chplFlags.split(" ") do
       if !flag.strip().isEmpty() then args.pushBack(flag.strip());
 

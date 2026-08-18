@@ -55,7 +55,8 @@ module Commands {
       diags.raiseIfFailed("toolchain");
     }
 
-    const result = compile(plan.cfg, opts.root, plan.bundle, plan.emitted, diags);
+    const result = compile(plan.cfg, opts.root, plan.bundle, plan.emitted, diags,
+                           opts.devMode);
     diags.raiseIfFailed("compile");
 
     writeln("built ", result.binary, "  (", plan.bundle.pageCount(), " pages, ",
