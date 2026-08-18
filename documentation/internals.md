@@ -21,9 +21,10 @@ through `-M`, because their module names deliberately do not have to match their
 file names. The runtime is passed as module search paths.
 
 Rebuilds are content-hashed, not timestamped: an editor that rewrites a file with
-identical bytes does not trigger a rebuild, and a checkout that rolls timestamps
-backwards does. Generated files whose content is unchanged are not rewritten, so
-`chpl` does not rebuild the world.
+identical bytes does not trigger a rebuild, and neither does `touch`. Size and
+mtime decide only whether a watched file has to be reread, so a poll that finds
+nothing moved reads nothing. Generated files whose content is unchanged are not
+rewritten, so `chpl` does not rebuild the world.
 
 ## The request path
 
@@ -57,11 +58,19 @@ layer, a task spawned by a task sitting in a blocking `accept()` does not run
 until that call returns. A server written the obvious way accepts one connection
 and then serves nothing.
 
-So every descriptor is `O_NONBLOCK` and every wait happens in Chapel: the accept
-loop sleeps when nothing is pending, and `Connection.fill` and `Connection.flush`
-retry across `EAGAIN` with exponential backoff against a deadline. `sleep` yields
-to the scheduler, so the worker is free while a connection waits. Timeouts are
+So every descriptor is `O_NONBLOCK`, and `Connection.fill` and `Connection.flush`
+retry across `EAGAIN` with exponential backoff against a deadline. Timeouts are
 tracked against a monotonic clock rather than delegated to `SO_RCVTIMEO`.
+
+`sleep` yields, so other tasks run while a connection waits, but it does not
+sleep: under qthreads it spin-yields against the clock, so a task waiting that
+way holds a core busy. An idle keep-alive connection is the visible cost, and
+the fix is an event loop over idle connections rather than a task parked on each.
+
+The accept loop is the exception. It waits in `poll()`, which costs nothing, but
+only while the gate is empty. Parking blocks the shepherd, and qthreads does not
+steal back a task queued on it, so a connection accepted and then left behind a
+parked loop is never read; an empty gate is the proof that no such task exists.
 
 A connection owns one read buffer used as a sliding window: `[start, stop)` is
 unconsumed, and bytes left over after a request are the head of the next
@@ -71,10 +80,13 @@ overall rather than O(n²).
 
 ## The C boundary
 
-All of it is `src/runtime/net/cataract_net.[ch]` plus the `extern` block in
-`CSocket.chpl`. Struct layout — `sockaddr_in`, `timeval` — is platform-dependent
-and padding-sensitive, so it is never mirrored into Chapel records. Chapel sees
-file descriptors and flat byte buffers, and nothing else.
+The runtime's is `src/runtime/net/cataract_net.[ch]` plus the `extern` block in
+`CSocket.chpl`; the toolchain has its own, `src/cli/cataract_cli.[ch]` behind
+`CliHost.chpl`, for the blocking sleep, signal handling, `stat` and the terminal
+check that Chapel's standard modules do not provide. Struct layout —
+`sockaddr_in`, `timeval` — is platform-dependent and padding-sensitive, so it is
+never mirrored into Chapel records. Chapel sees file descriptors and flat byte
+buffers, and nothing else.
 
 `SIGPIPE` is masked at start-up, so a peer disappearing mid-write surfaces as
 `EPIPE` on one task instead of killing the process. `strerror` is called through
@@ -90,6 +102,12 @@ can reach a descriptor at all.
 polls it, stops accepting, and drains outstanding connections up to
 `drainSeconds` before returning. Connections in flight finish their current
 request; keep-alive is not renewed once shutdown is requested.
+
+`cataract dev` installs the same pair, so Ctrl-C ends the watcher and terminates
+the server it spawned instead of leaving it holding the port. The listener sets
+`SO_REUSEADDR` but not `SO_REUSEPORT`: a second server binding the same port
+would otherwise share it and quietly take the traffic, which is indistinguishable
+from a change that never took effect. Binding twice fails with a message saying so.
 
 ## Concurrency in application code
 

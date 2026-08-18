@@ -53,6 +53,11 @@ cataract new NAME   scaffold an application
 --notes            include notes in diagnostic output
 ```
 
+`dev` rebuilds without `--fast`, because an optimising compile costs more than it
+saves on a binary replaced seconds later, and stops on Ctrl-C. Errors, warnings
+and a successful build are coloured when the output is a terminal; `NO_COLOR`
+turns that off.
+
 ## cataract.toml
 
 Read as a flat key/value subset of TOML: `[section]` headers, `key = value`, `#`
@@ -78,7 +83,7 @@ request_timeout_ms = 20000   # whole-request budget, armed at the first byte
 log_level = "info"           # debug, info, warn, error
 
 [build]
-optimize = true              # passes --fast to chpl
+optimize = true              # passes --fast to chpl; `dev` never does
 chpl_flags = ""
 
 [security]

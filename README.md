@@ -56,8 +56,9 @@ groups, two layouts), `dashboard` (query filters, status codes from a page).
 
 ## Contributing
 
-`make` builds the toolchain and `make examples` exercises it end to end; both
-must pass. Keep comments to architectural context and C-interop caveats, open an
-issue before changing the public API, and report security issues privately.
+`make` builds the toolchain, `make examples` exercises it end to end and
+`make lint` runs chplcheck against the project's own rules; all three must pass.
+Keep comments to architectural context and C-interop caveats, open an issue
+before changing the public API, and report security issues privately.
 
 Version 0.2.1. The public API is not yet stable.

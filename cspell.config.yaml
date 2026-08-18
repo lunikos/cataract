@@ -32,6 +32,8 @@ words:
   - nonblock
   - nonblocking
   - rcvtimeo
+  - reuseaddr
+  - reuseport
   - sigpipe
   - sockaddr
   - strerror

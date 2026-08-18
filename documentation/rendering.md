@@ -170,7 +170,24 @@ defineIsland("counter", (el, props) => {
 
 The factory receives the island element and the parsed props, and runs once per
 element. A factory that throws is logged and the element left as rendered, so a
-failed mount degrades to a static region rather than a blank one.
+failed mount degrades to a static region rather than a blank one; the failure is
+recorded, so a later rescan does not run a factory already known to be broken.
+
+Anything owned outside the element — a timer, a listener on `window` — outlives
+the element unless the factory returns a teardown function, which runs when the
+island leaves the document:
+
+```js
+defineIsland("uptime", (el, props) => {
+  const timer = setInterval(() => render(el), 1000);
+  return () => clearInterval(timer);
+});
+```
+
+Props must parse to a JSON object; anything else, or malformed JSON, is reported
+and replaced with `{}` rather than passed on. An island the server rendered but
+no script defines warns once and is left as rendered, which is otherwise a silent
+no-op that is hard to place.
 
 `app/islands/*.js` are concatenated with the client runtime into
 `/_cataract/client.js`. The `import` naming `cataract/client` is stripped during
