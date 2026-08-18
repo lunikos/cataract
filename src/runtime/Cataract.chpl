@@ -16,5 +16,5 @@ module Cataract {
                           debug as logDebug;
   public use HttpParser only Limits;
 
-  param version = "0.2.0";
+  param version = "0.2.1";
 }
