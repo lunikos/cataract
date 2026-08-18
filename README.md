@@ -10,9 +10,11 @@ there is no template language.
 <br clear="left">
 
 Requires Chapel 2.x with `chpl` on `PATH`, and a POSIX host with a C compiler.
+Source-only for now — no package manager, clone and build:
 
 ```
-make                                  # builds bin/cataract
+git clone https://github.com/lunikos/cataract.git && cd cataract
+make                                   # builds bin/cataract
 export CATARACT_RUNTIME=$PWD/src/runtime
 cataract new blog && cd blog && cataract build && ./dist/blog
 ```
