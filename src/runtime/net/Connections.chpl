@@ -96,7 +96,6 @@ module Connections {
     }
 
     proc write(s: string) do outBuf.append(s);
-    proc writeLine(s: string) do outBuf.appendLine(s);
     proc writeBytes(const ref b: Bytes) do outBuf.append(b);
 
     proc flush(): bool {

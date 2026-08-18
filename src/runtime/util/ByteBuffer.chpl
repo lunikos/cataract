@@ -48,11 +48,6 @@ module ByteBuffer {
       push(10);
     }
 
-    proc ref appendCrlf() {
-      push(13);
-      push(10);
-    }
-
     proc ptr(): c_ptr(uint(8)) {
       if dom.size == 0 then return nil;
       return c_ptrTo(data[0]);
@@ -76,11 +71,5 @@ module ByteBuffer {
     const n = hi - lo;
     return try! string.createCopyingBuffer(c_ptrToConst(buf[lo]): c_ptrConst(c_char), n,
                                            decodePolicy.replace);
-  }
-
-  proc bytesFromString(s: string): Bytes {
-    var b = new Bytes();
-    b.append(s);
-    return b;
   }
 }

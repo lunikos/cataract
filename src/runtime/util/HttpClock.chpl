@@ -9,7 +9,6 @@ module HttpClock {
   private var cachedSecond: int(64) = -1;
   private var cachedDate: string = "";
 
-  proc unixNow(): int(64) do return cat_unix_time();
   proc monoMillis(): int(64) do return cat_mono_millis();
 
   proc httpDate(): string {

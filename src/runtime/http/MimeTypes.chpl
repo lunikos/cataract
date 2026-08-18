@@ -55,9 +55,4 @@ module MimeTypes {
     if slash != -1 && slash > dot then return "application/octet-stream";
     return forExtension(try! path[(dot + 1)..]);
   }
-
-  proc isCompressible(mime: string): bool {
-    return mime.startsWith("text/") || mime.startsWith("application/json") ||
-           mime.startsWith("application/xml") || mime.startsWith("image/svg");
-  }
 }
