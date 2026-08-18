@@ -6,6 +6,7 @@ module Commands {
   private use Path;
   private use Subprocess;
   private use Diagnostics;
+  private use CliHost;
   private use AppConfig;
   private use Manifest;
   private use Scanner;
@@ -69,9 +70,15 @@ module Commands {
     var devOpts = opts;
     devOpts.devMode = true;
 
+    if !CliHost.installShutdownHandlers() then
+      writeln("warning: Ctrl-C will not stop the server cleanly");
+
     writeln("cataract dev: watching ", devOpts.root, " (Ctrl-C to stop)");
 
-    while true {
+    while !CliHost.shutdownRequested() {
+      writeln("building...");
+      stdout.flush();
+
       var buildBag = new Bag();
       buildBag.showNotes = devOpts.showNotes;
       const built = rebuild(devOpts, buildBag);
@@ -81,6 +88,9 @@ module Commands {
       cfgBag.showNotes = devOpts.showNotes;
       const cfg = AppConfig.load(joinPath(devOpts.root, devOpts.configPath), cfgBag);
       const baseline = sourceFingerprint(cfg, devOpts.root);
+
+      /* A signal during the compile must not start a server to kill at once. */
+      if CliHost.shutdownRequested() then break;
 
       if built != 0 {
         writeln("build failed; waiting for changes");
@@ -95,8 +105,9 @@ module Commands {
         var child = spawn([binary,
                            "--port=" + requestedPort:string,
                            "--devMode=true"]);
-        waitForChange(cfg, devOpts, baseline);
-        writeln("change detected; restarting");
+        const changed = waitForChange(cfg, devOpts, baseline);
+        writeln(if changed then "change detected; restarting" else "stopping");
+        stdout.flush();
         try child.terminate();
         child.wait();
       } catch e {
@@ -107,10 +118,14 @@ module Commands {
     return 0;
   }
 
+  /* False once a signal asks the loop to end rather than restart. */
   private proc waitForChange(const ref cfg: ProjectConfig, const ref opts: Options,
-                             baseline: string) throws {
-    while sourceFingerprint(cfg, opts.root) == baseline do
-      sleep(opts.watchIntervalMillis / 1000.0);
+                             baseline: string): bool throws {
+    while sourceFingerprint(cfg, opts.root) == baseline {
+      if CliHost.shutdownRequested() then return false;
+      CliHost.sleepMillis(opts.watchIntervalMillis);
+    }
+    return !CliHost.shutdownRequested();
   }
 
   private proc rebuild(const ref opts: Options, ref diags: Bag): int throws {
