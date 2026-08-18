@@ -7,4 +7,6 @@ void cat_cli_sleep_millis(int millis);
 int cat_cli_install_shutdown_handlers(void);
 int cat_cli_shutdown_requested(void);
 
+int cat_cli_use_colour(void);
+
 #endif /* CATARACT_CLI_H */

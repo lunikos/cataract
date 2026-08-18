@@ -27,6 +27,8 @@ long cat_send(int fd, const void *buf, size_t len);
 int cat_shutdown(int fd);
 int cat_close(int fd);
 
+int cat_use_colour(void);
+
 int cat_errno(void);
 const char *cat_strerror(int err);
 

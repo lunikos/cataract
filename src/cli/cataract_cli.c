@@ -3,7 +3,9 @@
 #include <errno.h>
 #include <signal.h>
 #include <string.h>
+#include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
 
 void cat_cli_sleep_millis(int millis) {
   struct timespec req;
@@ -37,4 +39,10 @@ int cat_cli_install_shutdown_handlers(void) {
 
 int cat_cli_shutdown_requested(void) {
   return cat_cli_stop_flag != 0;
+}
+
+int cat_cli_use_colour(void) {
+  const char *no = getenv("NO_COLOR");
+  if (no != NULL && no[0] != '\0') return 0;
+  return isatty(STDERR_FILENO) && isatty(STDOUT_FILENO);
 }

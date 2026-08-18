@@ -25,6 +25,7 @@ words:
   - epipe
   - errno
   - getenv
+  - isatty
   - memcpy
   - nodelay
   - nonblock

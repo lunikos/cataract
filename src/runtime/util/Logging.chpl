@@ -1,5 +1,6 @@
 module Logging {
   private use IO;
+  private use CSocket only cat_use_colour;
 
   enum LogLevel { trace = 0, debug = 1, info = 2, warn = 3, error = 4, silent = 5 }
 
@@ -27,13 +28,18 @@ module Logging {
     return (l: int) >= levelOrd.read();
   }
 
+  private const colour = cat_use_colour() != 0;
+
+  private proc paint(code: string, text: string): string do
+    return if colour then "\x1b[" + code + "m" + text + "\x1b[0m" else text;
+
   private proc tag(l: LogLevel): string {
     select l {
       when LogLevel.trace do return "trace";
       when LogLevel.debug do return "debug";
-      when LogLevel.info  do return "info ";
-      when LogLevel.warn  do return "warn ";
-      when LogLevel.error do return "error";
+      when LogLevel.info  do return paint("32", "info ");
+      when LogLevel.warn  do return paint("33", "warn ");
+      when LogLevel.error do return paint("31", "error");
       otherwise do return "     ";
     }
   }

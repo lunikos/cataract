@@ -2,6 +2,7 @@ module Cli {
   private use List;
   private use IO;
   private use Diagnostics;
+  private use CliHost only red;
   private use Commands;
 
   param VERSION = "0.2.0";
@@ -113,7 +114,7 @@ module Cli {
         when "routes" do return routes(inv.opts, diags);
         when "new" {
           if inv.target.isEmpty() {
-            try! stderr.writeln("error: `cataract new` needs a project name");
+            try! stderr.writeln(red("error"), ": `cataract new` needs a project name");
             return 2;
           }
           return newApp(inv.target, inv.opts, diags);
@@ -127,13 +128,13 @@ module Cli {
           return 0;
         }
         otherwise {
-          try! stderr.writeln("error: unknown command \"", inv.command, "\"");
+          try! stderr.writeln(red("error"), ": unknown command \"", inv.command, "\"");
           try! stderr.writeln(usage());
           return 2;
         }
       }
     } catch e {
-      try! stderr.writeln("error: ", e.message());
+      try! stderr.writeln(red("error"), ": ", e.message());
       return 1;
     }
   }

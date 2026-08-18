@@ -8,6 +8,7 @@
 #include <poll.h>
 #include <signal.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -162,6 +163,12 @@ long cat_send(int fd, const void *buf, size_t len) {
 int cat_shutdown(int fd) { return shutdown(fd, SHUT_RDWR); }
 
 int cat_close(int fd) { return close(fd); }
+
+int cat_use_colour(void) {
+  const char *no = getenv("NO_COLOR");
+  if (no != NULL && no[0] != '\0') return 0;
+  return isatty(STDOUT_FILENO);
+}
 
 int cat_errno(void) { return errno; }
 

@@ -1,6 +1,7 @@
 module Diagnostics {
   private use List;
   private use IO;
+  private use CliHost only red, yellow;
 
   enum Severity { note, warning, error }
 
@@ -11,6 +12,14 @@ module Diagnostics {
     var column: int = 0;
     var message: string = "";
     var hint: string = "";
+  }
+
+  private proc colourise(s: Severity, text: string): string {
+    select s {
+      when Severity.error do return red(text);
+      when Severity.warning do return yellow(text);
+      otherwise do return text;
+    }
   }
 
   proc severityLabel(s: Severity): string throws {
@@ -56,7 +65,7 @@ module Diagnostics {
       for i in from..<items.size {
         const d = items[i];
         if d.severity == Severity.note && !showNotes then continue;
-        sb += severityLabel(d.severity) + ": ";
+        sb += colourise(d.severity, severityLabel(d.severity)) + ": ";
         if !d.file.isEmpty() {
           sb += d.file;
           if d.line > 0 then sb += ":" + d.line:string;
