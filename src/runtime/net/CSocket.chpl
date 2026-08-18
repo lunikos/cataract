@@ -18,6 +18,7 @@ module CSocket {
   extern proc cat_close(fd: c_int): c_int;
   extern proc cat_use_colour(): c_int;
   extern proc cat_errno(): c_int;
+  extern proc cat_eaddrinuse(): c_int;
   extern proc cat_strerror(err: c_int): c_ptrConst(c_char);
 
   extern proc cat_unix_time(): int(64);

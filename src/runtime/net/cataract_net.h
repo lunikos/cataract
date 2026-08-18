@@ -30,6 +30,7 @@ int cat_close(int fd);
 int cat_use_colour(void);
 
 int cat_errno(void);
+int cat_eaddrinuse(void);
 const char *cat_strerror(int err);
 
 int64_t cat_unix_time(void);

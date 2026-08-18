@@ -21,6 +21,7 @@ words:
 
   # POSIX, libc and the C interop boundary
   - cstr
+  - eaddrinuse
   - eagain
   - epipe
   - errno

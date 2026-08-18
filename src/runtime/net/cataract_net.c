@@ -54,9 +54,8 @@ int cat_listen(const char *host, uint16_t port, int backlog) {
     close(fd);
     return -1;
   }
-#ifdef SO_REUSEPORT
-  setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on));
-#endif
+  /* No SO_REUSEPORT: a second server would share the port and quietly take
+     the traffic, so a stale one reads as a change that never took effect. */
 
   memset(&addr, 0, sizeof(addr));
   addr.sin_family = AF_INET;
@@ -171,6 +170,8 @@ int cat_use_colour(void) {
 }
 
 int cat_errno(void) { return errno; }
+
+int cat_eaddrinuse(void) { return EADDRINUSE; }
 
 /* strerror() shares a static buffer across threads; this one is per-thread. */
 static _Thread_local char cat_err_buf[128];

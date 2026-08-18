@@ -62,9 +62,13 @@ module Sockets {
       Logging.warn("could not mask SIGPIPE: " + errnoMessage());
 
     const fd = cat_listen(host.c_str(), port: uint(16), backlog: c_int);
-    if fd < 0 then
-      throw new owned SocketError("bind " + host + ":" + port:string + " failed (" +
-                                  errnoMessage() + ")");
+    if fd < 0 {
+      const at = host + ":" + port:string;
+      if cat_errno() == cat_eaddrinuse() then
+        throw new owned SocketError(at + " is already in use; another server " +
+                                    "is still running, or pass --port=<n>");
+      throw new owned SocketError("bind " + at + " failed (" + errnoMessage() + ")");
+    }
     if cat_set_nonblocking(fd) != 0 then
       throw new owned SocketError("could not set O_NONBLOCK on the listener (" +
                                   errnoMessage() + ")");
