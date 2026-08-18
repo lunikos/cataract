@@ -29,13 +29,12 @@ module Server {
     var keepAliveTimeoutMillis: int = 5000;
     var maxRequestsPerConnection: int = 256;
     var acceptPollSeconds: real = 0.0005;
+    var acceptWaitMillis: int = 250;
     var drainSeconds: real = 10.0;
     var devMode: bool = false;
     var limits: Limits;
   }
-
-  /* One task per connection behind a bounded gate; a Connection is `owned` and
-     moved into its task, so the descriptor dies with the task. */
+  
   class App {
     var settings: ServerConfig;
     var router: owned Router = new Router();
@@ -79,7 +78,10 @@ module Server {
           var sock = accept(listener, idle);
           if sock == nil {
             if idle {
-              sleep(settings.acceptPollSeconds);
+              if gate.inFlight() == 0 then
+                waitForConnection(listener, settings.acceptWaitMillis);
+              else
+                sleep(settings.acceptPollSeconds);
               continue;
             }
             if shutdownRequested() then break;

@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#include <poll.h>
 #include <signal.h>
 #include <stdio.h>
 #include <string.h>
@@ -113,6 +114,23 @@ int cat_set_nonblocking(int fd) {
   int flags = fcntl(fd, F_GETFL, 0);
   if (flags < 0) return -1;
   return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+}
+
+int cat_wait_readable(int fd, int timeout_ms) {
+  struct pollfd p;
+  int rc;
+
+  p.fd = fd;
+  p.events = POLLIN;
+  p.revents = 0;
+
+  /* Not retried on EINTR: that would sleep through the signal ending the run. */
+  rc = poll(&p, 1, timeout_ms);
+
+  if (rc > 0) return 1;
+  if (rc == 0) return 0;
+  if (errno == EINTR) return 0;
+  return -1;
 }
 
 int cat_set_nodelay(int fd, int on) {

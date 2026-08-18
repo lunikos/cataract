@@ -1,4 +1,3 @@
-/* Sole C boundary. Nothing above net/ imports CTypes or touches a descriptor. */
 module CSocket {
   public use CTypes;
 
@@ -12,6 +11,7 @@ module CSocket {
                          peer_port: c_ptr(uint(16))): c_int;
   extern proc cat_set_nonblocking(fd: c_int): c_int;
   extern proc cat_set_nodelay(fd: c_int, enable: c_int): c_int;
+  extern proc cat_wait_readable(fd: c_int, timeout_ms: c_int): c_int;
   extern proc cat_recv(fd: c_int, buf: c_ptr(void), len: c_size_t): c_long;
   extern proc cat_send(fd: c_int, buf: c_ptrConst(void), len: c_size_t): c_long;
   extern proc cat_shutdown(fd: c_int): c_int;

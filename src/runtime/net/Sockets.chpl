@@ -73,6 +73,12 @@ module Sockets {
 
   proc shutdownRequested(): bool do return cat_shutdown_requested() != 0;
 
+  /* Idles in the kernel; the timeout only bounds how fast shutdown is noticed. */
+  proc waitForConnection(const ref l: Listener, timeoutMillis: int) {
+    if cat_wait_readable(l.fd, timeoutMillis: c_int) < 0 then
+      Logging.debug("wait on the listener failed: " + errnoMessage());
+  }
+
   proc installShutdownHandlers() {
     if cat_install_shutdown_handlers() != 0 then
       Logging.warn("could not install shutdown handlers: " + errnoMessage());

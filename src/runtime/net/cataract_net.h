@@ -15,9 +15,10 @@ int cat_listen(const char *host, uint16_t port, int backlog);
 
 int cat_accept(int listen_fd, char *peer_ip, size_t peer_ip_cap, uint16_t *peer_port);
 
-/* Every descriptor is non-blocking; waiting happens in Chapel, not the kernel. */
 int cat_set_nonblocking(int fd);
 int cat_set_nodelay(int fd, int on);
+
+int cat_wait_readable(int fd, int timeout_ms);
 
 long cat_recv(int fd, void *buf, size_t len);
 
