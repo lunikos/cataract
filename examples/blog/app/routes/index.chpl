@@ -1,5 +1,6 @@
 module PageIndex {
   use Cataract;
+  use CataractUrls;
   use PostStore;
 
   proc page(ctx: Context, ref meta: PageMeta): string {
@@ -18,14 +19,14 @@ module PageIndex {
     for p in PostStore.all() {
       if p.published <= "2026-01-31" then continue;
       h.open("li");
-      h.el("a", p.title, "href", "/posts/" + p.id);
+      h.el("a", p.title, "href", url(Route.postsId, p.id));
       h.el("span", p.published, "class", "date");
       h.close();
     }
     h.close();
 
     h.open("p");
-    h.el("a", "All " + PostStore.count():string + " posts", "href", "/posts");
+    h.el("a", "All " + PostStore.count():string + " posts", "href", url(Route.posts));
     h.close();
 
     return h.done();

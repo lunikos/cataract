@@ -1,5 +1,6 @@
 module PagePosts {
   use Cataract;
+  use CataractUrls;
   use PostStore;
 
   proc page(ctx: Context, ref meta: PageMeta): string {
@@ -18,7 +19,7 @@ module PagePosts {
     h.open("ul", "class", "posts");
     for p in PostStore.all() {
       h.open("li");
-      h.el("a", p.title, "href", "/posts/" + p.id);
+      h.el("a", p.title, "href", url(Route.postsId, p.id));
       h.el("p", p.summary);
       h.el("span", p.published, "class", "date");
       h.close();

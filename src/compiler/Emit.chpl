@@ -27,6 +27,7 @@ module Emit {
 
     emitFile(result, "CataractAssets.chpl", assetsModule(assets), diags);
     emitFile(result, "GeneratedRoutes.chpl", routesModule(bundle, assets), diags);
+    emitFile(result, "CataractUrls.chpl", urlsModule(bundle), diags);
     emitFile(result, "CataractMain.chpl", mainModuleSource(cfg, root), diags);
     pruneStale(result, diags);
 
@@ -78,6 +79,100 @@ module Emit {
     sb += "  }\n";
     sb += "}\n";
     return sb;
+  }
+
+  private proc urlsModule(const ref bundle: Bundle): string throws {
+    var sb = BANNER;
+    sb += "module CataractUrls {\n";
+    sb += "  public use Urls;\n\n";
+
+    if bundle.routes.isEmpty() {
+      sb += "  enum Route { none }\n";
+      sb += "}\n";
+      return sb;
+    }
+
+    sb += "  enum Route {\n";
+    var first = true;
+    for r in bundle.routes {
+      sb += if first then "    " else ",\n    ";
+      sb += r.urlName;
+      first = false;
+    }
+    sb += "\n  }\n\n";
+
+    sb += "  proc pathPattern(route: Route): string {\n";
+    sb += "    select route {\n";
+    for r in bundle.routes do
+      sb += "      when Route." + r.urlName + " do return " +
+             chplLiteral(r.pattern) + ";\n";
+    sb += "      otherwise do return \"\";\n";
+    sb += "    }\n";
+    sb += "  }\n\n";
+
+    sb += "  proc url(param route: Route): string {\n";
+    for r in bundle.routes {
+      if r.params.isEmpty() then
+        sb += "    if route == Route." + r.urlName + " then return " +
+               chplLiteral(r.pattern) + ";\n";
+      else
+        sb += "    if route == Route." + r.urlName + " then\n" +
+               "      compilerError(\"Route." + r.urlName + " needs " +
+               argumentCount(r.params.size) + "\");\n";
+    }
+    sb += "    return \"\";\n";
+    sb += "  }\n\n";
+
+    sb += "  proc url(param route: Route, args ...?count): string {\n";
+    for r in bundle.routes {
+      sb += "    if route == Route." + r.urlName + " {\n";
+      if r.params.isEmpty() {
+        sb += "      compilerError(\"Route." + r.urlName +
+               " takes no path arguments\");\n";
+      } else {
+        sb += "      if count != " + r.params.size:string + " then\n";
+        sb += "        compilerError(\"Route." + r.urlName + " needs exactly " +
+               argumentCount(r.params.size) + "\");\n";
+        sb += "      return " + urlExpression(r) + ";\n";
+      }
+      sb += "    }\n";
+    }
+    sb += "    return \"\";\n";
+    sb += "  }\n";
+    sb += "}\n";
+    return sb;
+  }
+
+  private proc argumentCount(n: int): string throws {
+    return n:string + (if n == 1 then " path argument" else " path arguments");
+  }
+
+  private proc urlExpression(const ref r: RouteEntry): string throws {
+    var parts: list(string);
+    var literal = "";
+    var argAt = 0;
+
+    for seg in r.pattern.split("/") {
+      if seg.isEmpty() then continue;
+      if seg.startsWith("[") {
+        const catchAll = seg.startsWith("[...");
+        parts.pushBack(chplLiteral(literal + "/"));
+        parts.pushBack((if catchAll then "rest(" else "segment(") +
+                       "args(" + argAt:string + "))");
+        literal = "";
+        argAt += 1;
+      } else {
+        literal += "/" + seg;
+      }
+    }
+    if !literal.isEmpty() then parts.pushBack(chplLiteral(literal));
+
+    var sb = "";
+    for p in parts {
+      if !sb.isEmpty() then sb += " + ";
+      sb += p;
+    }
+    return if sb.isEmpty() then "\"/\"" else sb;
   }
 
   private proc routesModule(const ref bundle: Bundle,

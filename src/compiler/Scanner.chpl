@@ -29,6 +29,7 @@ module Scanner {
 
     var seen: map(string, string);
     var symbols: map(string, int);
+    var urlNames: map(string, int);
 
     for path in sorted {
       const rel = relativeTo(routesRoot, path);
@@ -51,6 +52,7 @@ module Scanner {
                      else if entry.kind == EntryKind.socket then "socket_"
                      else "api_";
       entry.symbol = unique(symbols, symbolFor(prefix, entry.pattern));
+      entry.urlName = unique(urlNames, urlNameFor(entry.pattern));
 
       if entry.kind == EntryKind.page {
         if !contains(bundle.pageModules, entry.moduleName) then

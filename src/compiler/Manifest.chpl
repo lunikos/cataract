@@ -9,6 +9,7 @@ module Manifest {
     var sourcePath: string;
     var kind: EntryKind = EntryKind.page;
     var symbol: string;
+    var urlName: string;
     var moduleName: string = "";
     var methods: list(string);
     var throwsMethods: list(string);
@@ -85,6 +86,33 @@ module Manifest {
     }
     if sb.endsWith("_") then sb = sb[..<(sb.size - 1)];
     if sb == prefix then sb = prefix + "root";
+    return sb;
+  }
+
+  proc urlNameFor(pattern: string): string throws {
+    var sb = "";
+    for seg in pattern.split("/") {
+      if seg.isEmpty() then continue;
+      var word = seg;
+      if word.startsWith("[") {
+        word = word[1..<(word.size - 1)];
+        if word.startsWith("...") then word = word[3..];
+      }
+      var upper = !sb.isEmpty();
+      for ch in word {
+        const alpha = (ch >= "a" && ch <= "z") || (ch >= "A" && ch <= "Z");
+        const digit = ch >= "0" && ch <= "9";
+        if !alpha && !digit {
+          upper = true;
+          continue;
+        }
+        sb += if upper then ch.toUpper() else ch;
+        upper = false;
+      }
+    }
+    if sb.isEmpty() then return "root";
+    const first = sb[0];
+    if first >= "0" && first <= "9" then return "route" + sb;
     return sb;
   }
 

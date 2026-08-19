@@ -152,7 +152,7 @@ module Commands {
                    else if r.kind == EntryKind.socket then "sock"
                    else "api ";
       writeln("  ", kind, "  ", pad(r.pattern, 30), pad(methodList(r), 22),
-              r.sourcePath);
+              pad("Route." + r.urlName, 24), r.sourcePath);
     }
     writeln("");
     writeln("  ", plan.bundle.pageCount(), " pages, ", plan.bundle.apiCount(),
