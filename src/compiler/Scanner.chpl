@@ -47,7 +47,9 @@ module Scanner {
       readRouteModule(path, entry, diags);
       if entry.moduleName.isEmpty() then continue;
 
-      const prefix = if entry.kind == EntryKind.page then "page_" else "api_";
+      const prefix = if entry.kind == EntryKind.page then "page_"
+                     else if entry.kind == EntryKind.socket then "socket_"
+                     else "api_";
       entry.symbol = unique(symbols, symbolFor(prefix, entry.pattern));
 
       if entry.kind == EntryKind.page {
@@ -200,6 +202,14 @@ module Scanner {
         diags.error(path, 0, "route has no module declaration",
                     "wrap the file in `module " + suggestModuleName(entry.pattern) +
                     " { ... }`");
+      return;
+    }
+
+    const socketAt = findProc(source, "socket");
+    if socketAt >= 0 {
+      entry.kind = EntryKind.socket;
+      entry.throwsRender = lineDeclaresThrows(source, socketAt);
+      entry.methods.pushBack("GET");
       return;
     }
 

@@ -21,7 +21,7 @@ module Build {
   }
 
   private const RUNTIME_SUBDIRS = ["", "net", "http", "router", "render",
-                                   "middleware", "util"];
+                                   "middleware", "util", "ws"];
 
   proc compile(const ref cfg: ProjectConfig, root: string, const ref bundle: Bundle,
                const ref emitted: Emitted, ref diags: Bag,

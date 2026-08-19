@@ -6,14 +6,17 @@ module RouteTable {
   private use Sort;
   private use HttpMessage;
   private use HttpMethod;
+  private use WebSockets only WebSocket;
 
-  enum RouteKind { page, api }
+  enum RouteKind { page, api, socket }
 
   /* Virtual, so a generated subclass carries per-route state. */
   class Handler {
     proc handle(ctx: Context): Response {
       return errorResponse(501, "handler not implemented");
     }
+
+    proc serveSocket(ctx: Context, socket: shared WebSocket) { }
   }
 
   record Route {
@@ -137,6 +140,12 @@ module RouteTable {
     proc dispatch(at: int, ctx: Context): Response {
       return routes[at].handler!.handle(ctx);
     }
+
+    proc dispatchSocket(at: int, ctx: Context, socket: shared WebSocket) {
+      routes[at].handler!.serveSocket(ctx, socket);
+    }
+
+    proc kindOf(at: int): RouteKind do return routes[at].kind;
 
     proc size(): int do return routes.size;
 

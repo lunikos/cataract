@@ -31,6 +31,11 @@ module AppConfig {
     var requestTimeoutMillis: int = 20000;
     var logLevel: string = "info";
 
+    var socketMaxMessageBytes: int = 1048576;
+    var socketIdleTimeoutMillis: int = 300000;
+    var socketSendTimeoutMillis: int = 10000;
+    var socketSubprotocols: string = "";
+
     var optimize: bool = true;
     var chplFlags: string = "";
     var contentSecurityPolicy: string = "";
@@ -147,6 +152,15 @@ module AppConfig {
       when "server.request_timeout_ms" do
         cfg.requestTimeoutMillis = toInt(value, cfg.requestTimeoutMillis, path, line, diags);
       when "server.log_level" do cfg.logLevel = value;
+      when "server.socket_max_message_bytes" do
+        cfg.socketMaxMessageBytes = toInt(value, cfg.socketMaxMessageBytes, path, line, diags);
+      when "server.socket_idle_timeout_ms" do
+        cfg.socketIdleTimeoutMillis = toInt(value, cfg.socketIdleTimeoutMillis, path, line,
+                                            diags);
+      when "server.socket_send_timeout_ms" do
+        cfg.socketSendTimeoutMillis = toInt(value, cfg.socketSendTimeoutMillis, path, line,
+                                            diags);
+      when "server.socket_subprotocols" do cfg.socketSubprotocols = value;
 
       when "build.optimize" do cfg.optimize = toBool(value);
       when "build.chpl_flags" do cfg.chplFlags = value;

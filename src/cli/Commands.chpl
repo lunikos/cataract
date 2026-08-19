@@ -60,8 +60,9 @@ module Commands {
                            opts.devMode);
     diags.raiseIfFailed("compile");
 
-    writeln(CliHost.green("built"), " ", result.binary, "  (", plan.bundle.pageCount(), " pages, ",
-            plan.bundle.apiCount(), " api routes, ", plan.assets.copied,
+    writeln(CliHost.green("built"), " ", result.binary, "  (", plan.bundle.pageCount(),
+            " pages, ", plan.bundle.apiCount(), " api routes, ",
+            plan.bundle.socketCount(), " sockets, ", plan.assets.copied,
             " assets) in ", fmt(result.seconds), "s");
     return 0;
   }
@@ -147,13 +148,16 @@ module Commands {
     writeln("match order (most specific first)");
     writeln("");
     for r in ordered {
-      const kind = if r.kind == EntryKind.page then "page" else "api ";
+      const kind = if r.kind == EntryKind.page then "page"
+                   else if r.kind == EntryKind.socket then "sock"
+                   else "api ";
       writeln("  ", kind, "  ", pad(r.pattern, 30), pad(methodList(r), 22),
               r.sourcePath);
     }
     writeln("");
     writeln("  ", plan.bundle.pageCount(), " pages, ", plan.bundle.apiCount(),
-            " api routes, ", plan.bundle.layouts.size, " layouts, ",
+            " api routes, ", plan.bundle.socketCount(), " sockets, ",
+            plan.bundle.layouts.size, " layouts, ",
             plan.bundle.islands.size, " islands");
     return 0;
   }

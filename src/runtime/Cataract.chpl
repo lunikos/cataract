@@ -4,6 +4,9 @@ module Cataract {
   public use HttpMethod only Method, methodName, effectiveMethod;
   public use HttpStatus only reason;
   public use RouteTable only Handler, Router, RouteKind;
+  public use WebSockets only WebSocket, Message;
+  public use Frames only Opcode, CLOSE_NORMAL, CLOSE_GOING_AWAY, CLOSE_UNSUPPORTED;
+  public import Rooms;
   public use RouteParams only methodBit, maskAllows;
   public use Pipeline only Middleware, Chain;
   public use Server only App, ServerConfig;

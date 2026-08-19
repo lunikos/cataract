@@ -106,8 +106,7 @@ module Emit {
     sb += "  proc registerRoutes(app: borrowed App) throws {\n";
     for r in bundle.routes {
       sb += "    app.route(" + chplLiteral(r.pattern) + ", " +
-             methodMaskExpr(r.methods) + ", RouteKind." +
-             (if r.kind == EntryKind.page then "page" else "api") + ", " +
+             methodMaskExpr(r.methods) + ", RouteKind." + kindConstant(r.kind) + ", " +
              chplLiteral(r.sourcePath) + ", new shared " + handlerName(r) + "());\n";
     }
     sb += "  }\n";
@@ -129,6 +128,14 @@ module Emit {
     return n;
   }
 
+  proc kindConstant(kind: EntryKind): string throws {
+    select kind {
+      when EntryKind.page do return "page";
+      when EntryKind.socket do return "socket";
+      otherwise do return "api";
+    }
+  }
+
   private proc handlerName(const ref r: RouteEntry): string throws {
     return "H__" + r.symbol;
   }
@@ -136,6 +143,13 @@ module Emit {
   private proc handlerClass(const ref r: RouteEntry, const ref bundle: Bundle,
                             const ref sheets: [] string): string throws {
     var sb = "  class " + handlerName(r) + ": Handler {\n";
+
+    if r.kind == EntryKind.socket {
+      sb += socketBody(r);
+      sb += "  }\n";
+      return sb;
+    }
+
     sb += "    override proc handle(ctx: Context): Response {\n";
 
     if r.kind == EntryKind.page {
@@ -186,6 +200,30 @@ module Emit {
     return sb;
   }
 
+  private proc socketBody(const ref r: RouteEntry): string throws {
+    var sb = "    override proc handle(ctx: Context): Response {\n";
+    sb += "      var res = errorResponse(426, \"this route speaks WebSocket\");\n";
+    sb += "      res.setHeader(\"Upgrade\", \"websocket\");\n";
+    sb += "      res.setHeader(\"Connection\", \"Upgrade\");\n";
+    sb += "      return res;\n";
+    sb += "    }\n\n";
+
+    sb += "    override proc serveSocket(ctx: Context, socket: shared WebSocket) {\n";
+    if r.throwsRender {
+      sb += "      try {\n";
+      sb += "        " + r.moduleName + ".socket(ctx, socket);\n";
+      sb += "      } catch e {\n";
+      sb += "        logError(" + chplLiteral(r.pattern) +
+             " + \" socket failed: \" + e.message());\n";
+      sb += "        socket.closeWith(CLOSE_GOING_AWAY, \"handler failed\");\n";
+      sb += "      }\n";
+    } else {
+      sb += "      " + r.moduleName + ".socket(ctx, socket);\n";
+    }
+    sb += "    }\n";
+    return sb;
+  }
+
   /* `delete` is a Chapel keyword; enum constant and handler both spell it `del`. */
   proc enumConstant(httpMethod: string): string throws {
     const lower = httpMethod.toLower();
@@ -216,6 +254,14 @@ module Emit {
     sb += "  config const headerTimeoutMillis = " + cfg.headerTimeoutMillis:string + ";\n";
     sb += "  config const requestTimeoutMillis = " + cfg.requestTimeoutMillis:string + ";\n";
     sb += "  config const logLevel = " + chplLiteral(cfg.logLevel) + ";\n";
+    sb += "  config const socketMaxMessageBytes = " +
+           cfg.socketMaxMessageBytes:string + ";\n";
+    sb += "  config const socketIdleTimeoutMillis = " +
+           cfg.socketIdleTimeoutMillis:string + ";\n";
+    sb += "  config const socketSendTimeoutMillis = " +
+           cfg.socketSendTimeoutMillis:string + ";\n";
+    sb += "  config const socketSubprotocols = " +
+           chplLiteral(cfg.socketSubprotocols) + ";\n";
     sb += "  config const staticRoot = " + chplLiteral(publicOut) + ";\n";
     sb += "  config const devMode = false;\n";
     sb += "  config const hstsSeconds = " + cfg.hstsSeconds:string + ";\n";
@@ -230,6 +276,10 @@ module Emit {
     sb += "    serverConfig.keepAliveTimeoutMillis = keepAliveMillis;\n";
     sb += "    serverConfig.headerTimeoutMillis = headerTimeoutMillis;\n";
     sb += "    serverConfig.devMode = devMode;\n";
+    sb += "    serverConfig.socketMaxMessageBytes = socketMaxMessageBytes;\n";
+    sb += "    serverConfig.socketIdleTimeoutMillis = socketIdleTimeoutMillis;\n";
+    sb += "    serverConfig.socketSendTimeoutMillis = socketSendTimeoutMillis;\n";
+    sb += "    serverConfig.socketSubprotocols = socketSubprotocols;\n";
     sb += "    serverConfig.limits.maxBodyBytes = maxBodyBytes;\n";
     sb += "    serverConfig.limits.requestTimeoutMillis = requestTimeoutMillis;\n\n";
 

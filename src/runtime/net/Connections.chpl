@@ -153,6 +153,8 @@ module Connections {
       sock!.setNoDelay(enable);
     }
 
+    proc descriptor(): c_int do return sock!.fd;
+
     proc peerIp(): string do return sock!.peerIp;
     proc peerPort(): int do return sock!.peerPort;
   }

@@ -16,6 +16,9 @@ module Server {
   private use HttpClock;
   private use Ssr;
   private use JsonWrite;
+  private use Handshake;
+  private use WebSockets;
+  private use Rooms;
   private use Map;
   private use Time only sleep;
 
@@ -32,6 +35,10 @@ module Server {
     var acceptWaitMillis: int = 250;
     var drainSeconds: real = 10.0;
     var devMode: bool = false;
+    var socketMaxMessageBytes: int = 1048576;
+    var socketIdleTimeoutMillis: int = 300000;
+    var socketSendTimeoutMillis: int = 10000;
+    var socketSubprotocols: string = "";
     var limits: Limits;
   }
   
@@ -139,6 +146,8 @@ module Server {
                         served < settings.maxRequestsPerConnection &&
                         !shutdownRequested();
 
+        if isUpgradeRequest(ctx.request) && serveSocket(ctx, conn.borrow()) then break;
+
         var res = handle(ctx);
         if res.closeConnection then keepAlive = false;
 
@@ -148,6 +157,45 @@ module Server {
       }
 
       conn.close();
+    }
+
+    proc serveSocket(ref ctx: Context, conn: borrowed Connection): bool {
+      const m = router.match(ctx.request.path, ctx.request.method);
+      if !m.found || router.kindOf(m.routeIndex) != RouteKind.socket then return false;
+      ctx.params = m.params;
+
+      var res = new Response();
+      const (handled, entered) = chain.runBefore(ctx, res);
+      if handled {
+        chain.runAfter(ctx, res, entered);
+        writeResponse(conn, res, ctx.request.method, false);
+        return true;
+      }
+
+      const shake = negotiate(ctx.request, settings.socketSubprotocols);
+      if !shake.accepted {
+        var refused = errorResponse(shake.status, shake.detail);
+        refused.setHeader("Sec-WebSocket-Version", SUPPORTED_VERSION);
+        chain.runAfter(ctx, refused, entered);
+        writeResponse(conn, refused, ctx.request.method, false);
+        return true;
+      }
+
+      res.status = 101;
+      chain.runAfter(ctx, res, entered);
+      conn.write(shake.responseHead);
+      if !conn.flush() then return true;
+
+      var socket = new shared WebSocket(conn, ctx.request.path,
+                                        settings.socketMaxMessageBytes,
+                                        settings.socketSendTimeoutMillis,
+                                        settings.socketIdleTimeoutMillis);
+      Logging.info("websocket open " + ctx.request.path + " " + socket.id);
+      router.dispatchSocket(m.routeIndex, ctx, socket);
+      socket.markClosed();
+      Rooms.leaveAll(socket);
+      Logging.info("websocket close " + socket.id);
+      return true;
     }
 
     /* Every exit unwinds through `runAfter`, so nothing strands the hardening. */

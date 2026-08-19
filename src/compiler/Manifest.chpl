@@ -2,7 +2,7 @@ module Manifest {
   private use List;
   private use Map;
 
-  enum EntryKind { page, api }
+  enum EntryKind { page, api, socket }
 
   record RouteEntry {
     var pattern: string;
@@ -46,6 +46,12 @@ module Manifest {
     proc apiCount(): int throws {
       var n = 0;
       for r in routes do if r.kind == EntryKind.api then n += 1;
+      return n;
+    }
+
+    proc socketCount(): int throws {
+      var n = 0;
+      for r in routes do if r.kind == EntryKind.socket then n += 1;
       return n;
     }
   }
