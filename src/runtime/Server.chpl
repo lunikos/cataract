@@ -134,6 +134,7 @@ module Server {
           }
         }
 
+        listener.close();
         Logging.info("shutdown requested; draining " + gate.inFlight():string +
                      " connection(s)");
         if !gate.drain(settings.drainSeconds) then

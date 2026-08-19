@@ -18,6 +18,13 @@ module Build {
     var binary: string;
     var ok: bool = false;
     var seconds: real = 0.0;
+    var reused: bool = false;
+    var changed: bool = false;
+    var pages: int = 0;
+    var apiRoutes: int = 0;
+    var sockets: int = 0;
+    var tables: int = 0;
+    var assets: int = 0;
   }
 
   private const RUNTIME_SUBDIRS = ["", "net", "http", "router", "render",
@@ -120,6 +127,48 @@ module Build {
     }
   }
 
+  /* Only what `chpl` actually reads: a stylesheet reaches the binary through the
+     generated asset module, which is in this list, and nowhere else. */
+  proc compileFingerprint(const ref cfg: ProjectConfig, root: string,
+                          const ref emitted: Emitted, devMode: bool): string throws {
+    var files: list(string);
+    collectCompiled(resolveIn(root, cfg.appDir), files);
+    collectCompiled(resolveRuntime(cfg, root), files);
+    for f in emitted.files do files.pushBack(f);
+
+    var sorted = files.toArray();
+    sort(sorted);
+
+    var h: uint(64) = 0xcbf29ce484222325;
+    h = mix(h, cfg.name);
+    h = mix(h, cfg.chplFlags);
+    h = mix(h, if cfg.optimize && !devMode then "fast" else "plain");
+    for path in sorted {
+      h = mix(h, path);
+      h = mix(h, contentHash(path, sizeOf(path), CliHost.mtimeNanos(path)));
+    }
+    return hex(h);
+  }
+
+  private proc sizeOf(path: string): int throws {
+    try {
+      return getFileSize(path);
+    } catch {
+      return -1;
+    }
+  }
+
+  private proc hex(h: uint(64)): string throws {
+    const digits = "0123456789abcdef";
+    var sb = "";
+    var shift = 60;
+    while shift >= 0 {
+      sb += digits[((h >> shift) & 0xf): int];
+      shift -= 4;
+    }
+    return sb;
+  }
+
   proc sourceFingerprint(const ref cfg: ProjectConfig, root: string): string throws {
     var files: list(string);
     collectWatched(resolveIn(root, cfg.appDir), files);
@@ -166,6 +215,18 @@ module Build {
       acc = acc * 0x100000001b3;
     }
     return acc;
+  }
+
+  private proc collectCompiled(dir: string, ref acc: list(string)) throws {
+    if !isDir(dir) then return;
+    for entry in listDir(dir, hidden = false) {
+      if entry.startsWith(".") then continue;
+      const full = joinPath(dir, entry);
+      if isDir(full) then collectCompiled(full, acc);
+      else if entry.endsWith(".chpl") || entry.endsWith(".c") || entry.endsWith(".h") ||
+              entry.endsWith(".sql") then
+        acc.pushBack(full);
+    }
   }
 
   private proc collectWatched(dir: string, ref acc: list(string)) throws {

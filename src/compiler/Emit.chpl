@@ -21,12 +21,13 @@ module Emit {
   }
 
   proc emit(const ref cfg: ProjectConfig, root: string, const ref bundle: Bundle,
-            const ref assets: AssetTable, ref diags: Bag): Emitted throws {
+            const ref assets: AssetTable, ref diags: Bag,
+            devMode: bool = false): Emitted throws {
     var result = new Emitted();
     result.generatedDir = joinPath(resolveIn(root, cfg.outDir), "generated");
     ensureDir(result.generatedDir, diags);
 
-    emitFile(result, "CataractAssets.chpl", assetsModule(assets), diags);
+    emitFile(result, "CataractAssets.chpl", assetsModule(assets, devMode), diags);
     emitFile(result, "GeneratedRoutes.chpl", routesModule(bundle, assets), diags);
     emitFile(result, "CataractUrls.chpl", urlsModule(bundle), diags);
     if bundle.database.present then
@@ -61,7 +62,9 @@ module Emit {
     result.files.pushBack(path);
   }
 
-  private proc assetsModule(const ref assets: AssetTable): string throws {
+  /* Unversioned under `dev`: a stylesheet edit would otherwise rewrite this
+     module and cost a full recompile for a file the server reads from disk. */
+  private proc assetsModule(const ref assets: AssetTable, devMode: bool): string throws {
     var sb = BANNER;
     sb += "module CataractAssets {\n";
     /* A select, so asset lookup compiles to a jump table, not a runtime map. */
@@ -72,7 +75,7 @@ module Emit {
     var sorted = keys.toArray();
     sort(sorted);
 
-    if sorted.size == 0 {
+    if sorted.size == 0 || devMode {
       sb += "    return path;\n";
     } else {
       sb += "    select path {\n";
@@ -469,6 +472,7 @@ module Emit {
     sb += "  config const headerTimeoutMillis = " + cfg.headerTimeoutMillis:string + ";\n";
     sb += "  config const requestTimeoutMillis = " + cfg.requestTimeoutMillis:string + ";\n";
     sb += "  config const logLevel = " + chplLiteral(cfg.logLevel) + ";\n";
+    sb += "  config const drainSeconds = " + cfg.drainSeconds:string + ";\n";
     sb += "  config const socketMaxMessageBytes = " +
            cfg.socketMaxMessageBytes:string + ";\n";
     sb += "  config const socketIdleTimeoutMillis = " +
@@ -496,6 +500,7 @@ module Emit {
     sb += "    serverConfig.keepAliveTimeoutMillis = keepAliveMillis;\n";
     sb += "    serverConfig.headerTimeoutMillis = headerTimeoutMillis;\n";
     sb += "    serverConfig.devMode = devMode;\n";
+    sb += "    serverConfig.drainSeconds = drainSeconds: real;\n";
     sb += "    serverConfig.socketMaxMessageBytes = socketMaxMessageBytes;\n";
     sb += "    serverConfig.socketIdleTimeoutMillis = socketIdleTimeoutMillis;\n";
     sb += "    serverConfig.socketSendTimeoutMillis = socketSendTimeoutMillis;\n";

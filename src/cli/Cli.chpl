@@ -22,6 +22,8 @@ module Cli {
            "(default: cataract.toml)\n" +
            "  --port <n>         override server.port\n" +
            "  --watch-ms <n>     dev poll interval in milliseconds (default: 400)\n" +
+           "  --force            rebuild even when nothing changed\n" +
+           "  --grace-ms <n>     dev shutdown grace period (default: 5000)\n" +
            "  --notes            include notes in diagnostic output\n";
   }
 
@@ -65,6 +67,16 @@ module Cli {
               inv.opts.watchIntervalMillis = raw: int;
             } catch {
               return invalid(inv, "--watch-ms expects an integer, got \"" + raw + "\"");
+            }
+          }
+          when "--force" do inv.opts.force = true;
+          when "--grace-ms" {
+            var raw = "";
+            if !takeValue(argv, i, raw, inv) then return inv;
+            try {
+              inv.opts.shutdownGraceMillis = raw: int;
+            } catch {
+              return invalid(inv, "--grace-ms expects an integer, got \"" + raw + "\"");
             }
           }
           when "--notes" do inv.opts.showNotes = true;

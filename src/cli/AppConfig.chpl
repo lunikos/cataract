@@ -32,6 +32,7 @@ module AppConfig {
     var headerTimeoutMillis: int = 10000;
     var requestTimeoutMillis: int = 20000;
     var logLevel: string = "info";
+    var drainSeconds: int = 10;
 
     var socketMaxMessageBytes: int = 1048576;
     var socketIdleTimeoutMillis: int = 300000;
@@ -214,6 +215,8 @@ module AppConfig {
       when "server.request_timeout_ms" do
         cfg.requestTimeoutMillis = toInt(value, cfg.requestTimeoutMillis, path, line, diags);
       when "server.log_level" do cfg.logLevel = value;
+      when "server.drain_seconds" do
+        cfg.drainSeconds = toInt(value, cfg.drainSeconds, path, line, diags);
       when "server.socket_max_message_bytes" do
         cfg.socketMaxMessageBytes = toInt(value, cfg.socketMaxMessageBytes, path, line, diags);
       when "server.socket_idle_timeout_ms" do
