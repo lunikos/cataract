@@ -4,8 +4,7 @@
 
 A full-stack web framework for [Chapel](https://chapel-lang.org). File-system
 routing, server-side rendering, partial hydration, WebSockets and an HTTP/1.1
-server on raw BSD sockets, compiled into one binary. Application code is Chapel
-throughout; there is no template language.
+server on raw BSD sockets, in one binary. Chapel throughout; no templates.
 
 <br clear="right">
 
@@ -56,23 +55,21 @@ What the toolchain works out before the server runs:
 - **routes** — the tree under `app/routes` is the route table, and every route
   is also a `Route` enum constant, so `url(Route.postsId, id)` is checked, with
   its argument count, at compile time
-- **queries** — `app/db/schema.sql` becomes typed Chapel records, and each named
-  query in `queries.sql` becomes a procedure whose arguments are typed by the
-  columns they compare against; an unknown column is a build error
+- **queries** — `app/db/schema.sql` becomes typed Chapel records, `queries.sql`
+  becomes procedures with each `:param` typed by the column it is compared
+  against, and a misspelled column fails the build rather than a request
 - **middleware** — a `[middleware]` section declares groups by path prefix, with
   built-in rate limiting, CORS and CSRF
 - **assets** — `app/public` is hashed and content-addressed, and islands are
   concatenated into one client bundle
 
 `build`, `dev` (rebuild and restart on change), `routes` (print the table in
-match order) and `new` are the whole CLI. `build --static` renders every static
-route to a directory of files. Rebuilds skip the compiler entirely when nothing
-it reads has changed, and `dev` keeps the server running for a change that only
-touches assets.
+match order) and `new` are the whole CLI; `build --static` writes every static
+route out as files. A rebuild skips the compiler when nothing it reads changed,
+and `dev` leaves the server up for a change that only touches assets.
 
 Every server setting is a Chapel `config const`, so a built binary is
-reconfigurable without a rebuild:
-`./dist/blog --port=8080 --logLevel=debug`.
+reconfigurable without a rebuild: `./dist/blog --port=8080 --logLevel=debug`.
 
 ## Documentation
 
@@ -89,10 +86,9 @@ reconfigurable without a rebuild:
 
 Four standalone projects under [`examples/`](examples): `blog` (the full stack,
 reverse-routed links, a CSRF-guarded API), `api` (headless JSON on a generated
-schema), `docs` (catch-all routes, route groups, two layouts, static export),
-`dashboard` (query filters, a WebSocket room, an island that refreshes itself).
-`make examples` builds all four; `make run-blog` runs one and `make static`
-exports one.
+schema), `docs` (catch-all routes, route groups, two layouts, static export) and
+`dashboard` (a WebSocket room, an island that refreshes itself). `make examples`
+builds all four; `make run-blog` runs one and `make static` exports one.
 
 ## Contributing
 
