@@ -16,6 +16,7 @@ module Server {
   private use HttpClock;
   private use Ssr;
   private use JsonWrite;
+  private use Distribution;
   private use Handshake;
   private use WebSockets;
   private use Rooms;
@@ -39,6 +40,10 @@ module Server {
     var socketIdleTimeoutMillis: int = 300000;
     var socketSendTimeoutMillis: int = 10000;
     var socketSubprotocols: string = "";
+    var affinity: Affinity = Affinity.pinned;
+    var stickyKey: string = "sid";
+    var listeners: ListenerMode = ListenerMode.single;
+    var exposeLocaleHeader: bool = false;
     var limits: Limits;
   }
   
@@ -46,11 +51,13 @@ module Server {
     var settings: ServerConfig;
     var router: owned Router = new Router();
     var chain: Chain;
+    var placement: owned Placement;
     var requestsHandled: atomic int;
     var connectionsAccepted: atomic int;
 
     proc init(settings: ServerConfig) {
       this.settings = settings;
+      this.placement = new Placement(settings.affinity, settings.stickyKey);
     }
 
     proc addMiddleware(in m: shared Middleware) {
@@ -66,17 +73,28 @@ module Server {
       router.seal();
       installShutdownHandlers();
 
-      var listener = bindAndListen(settings.host, settings.port, settings.backlog);
+      if settings.listeners == ListenerMode.perLocale && numLocales > 1 {
+        coforall loc in Locales do on loc do
+          try! serveOn(settings.port + loc.id);
+        return;
+      }
+      serveOn(settings.port);
+    }
+
+    proc serveOn(port: int) throws {
+      var listener = bindAndListen(settings.host, port, settings.backlog);
       defer listener.close();
 
       var gate = new Gate(limit = settings.maxConcurrency);
       gate.start();
 
       Logging.info("cataract listening on http://" + settings.host + ":" +
-                   settings.port:string +
+                   port:string +
                    (if settings.devMode then "  (dev)" else "") +
                    "  routes=" + router.size():string +
-                   "  concurrency=" + settings.maxConcurrency:string);
+                   "  concurrency=" + settings.maxConcurrency:string +
+                   "  locale=" + here.id:string + "/" + numLocales:string +
+                   "  affinity=" + affinityName(settings.affinity));
 
       /* `sync` so no connection task outlives the scope holding the gate. */
       sync {
@@ -207,7 +225,15 @@ module Server {
         const m = router.match(ctx.request.path, ctx.request.method);
         if m.found {
           ctx.params = m.params;
-          res = router.dispatch(m.routeIndex, ctx);
+          const target = placement.localeFor(ctx);
+          ctx.localeId = target;
+          if target == here.id {
+            res = router.dispatch(m.routeIndex, ctx);
+          } else {
+            on Locales[target] do res = router.dispatch(m.routeIndex, ctx);
+          }
+          if settings.exposeLocaleHeader then
+            res.setHeader("X-Cataract-Locale", target:string);
         } else if m.methodMismatch {
           res = notAllowed(ctx, m.allow);
         } else {

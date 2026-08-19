@@ -139,6 +139,7 @@ module HttpMessage {
     var locals: map(string, string);
     var startedAtMillis: int(64) = 0;
     var requestId: string = "";
+    var localeId: int = 0;
 
     proc pathParam(name: string, fallback: string = ""): string {
       if params.contains(name) then return try! params[name];

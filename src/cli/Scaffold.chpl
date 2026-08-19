@@ -37,6 +37,10 @@ module Scaffold {
            "port = 3000\n" +
            "max_concurrency = 512\n" +
            "log_level = \"info\"\n\n" +
+           "# Handler placement across locales; pinned keeps every request here.\n" +
+           "[distribution]\n" +
+           "affinity = \"pinned\"\n" +
+           "listeners = \"single\"\n\n" +
            "[build]\n" +
            "optimize = true\n";
   }

@@ -262,6 +262,11 @@ module Emit {
            cfg.socketSendTimeoutMillis:string + ";\n";
     sb += "  config const socketSubprotocols = " +
            chplLiteral(cfg.socketSubprotocols) + ";\n";
+    sb += "  config const affinity = " + chplLiteral(cfg.affinity) + ";\n";
+    sb += "  config const stickyKey = " + chplLiteral(cfg.stickyKey) + ";\n";
+    sb += "  config const listeners = " + chplLiteral(cfg.listeners) + ";\n";
+    sb += "  config const exposeLocale = " +
+           (if cfg.exposeLocale then "true" else "false") + ";\n";
     sb += "  config const staticRoot = " + chplLiteral(publicOut) + ";\n";
     sb += "  config const devMode = false;\n";
     sb += "  config const hstsSeconds = " + cfg.hstsSeconds:string + ";\n";
@@ -280,6 +285,10 @@ module Emit {
     sb += "    serverConfig.socketIdleTimeoutMillis = socketIdleTimeoutMillis;\n";
     sb += "    serverConfig.socketSendTimeoutMillis = socketSendTimeoutMillis;\n";
     sb += "    serverConfig.socketSubprotocols = socketSubprotocols;\n";
+    sb += "    serverConfig.affinity = parseAffinity(affinity);\n";
+    sb += "    serverConfig.stickyKey = stickyKey;\n";
+    sb += "    serverConfig.listeners = parseListenerMode(listeners);\n";
+    sb += "    serverConfig.exposeLocaleHeader = exposeLocale;\n";
     sb += "    serverConfig.limits.maxBodyBytes = maxBodyBytes;\n";
     sb += "    serverConfig.limits.requestTimeoutMillis = requestTimeoutMillis;\n\n";
 

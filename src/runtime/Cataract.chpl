@@ -10,6 +10,8 @@ module Cataract {
   public use RouteParams only methodBit, maskAllows;
   public use Pipeline only Middleware, Chain;
   public use Server only App, ServerConfig;
+  public use Distribution only Affinity, ListenerMode, parseAffinity,
+                               parseListenerMode, affinityName;
   public use Html only escape;
   public use Markup only MarkupBuilder, classList;
   public use JsonWrite only JsonBuilder, jsonString, escapeJson;

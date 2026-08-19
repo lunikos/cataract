@@ -36,6 +36,11 @@ module AppConfig {
     var socketSendTimeoutMillis: int = 10000;
     var socketSubprotocols: string = "";
 
+    var affinity: string = "pinned";
+    var stickyKey: string = "sid";
+    var listeners: string = "single";
+    var exposeLocale: bool = false;
+
     var optimize: bool = true;
     var chplFlags: string = "";
     var contentSecurityPolicy: string = "";
@@ -161,6 +166,11 @@ module AppConfig {
         cfg.socketSendTimeoutMillis = toInt(value, cfg.socketSendTimeoutMillis, path, line,
                                             diags);
       when "server.socket_subprotocols" do cfg.socketSubprotocols = value;
+
+      when "distribution.affinity" do cfg.affinity = value;
+      when "distribution.sticky_key" do cfg.stickyKey = value;
+      when "distribution.listeners" do cfg.listeners = value;
+      when "distribution.expose_locale" do cfg.exposeLocale = toBool(value);
 
       when "build.optimize" do cfg.optimize = toBool(value);
       when "build.chpl_flags" do cfg.chplFlags = value;
