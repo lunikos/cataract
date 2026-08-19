@@ -1,6 +1,6 @@
 module ApiTask {
   use Cataract;
-  use TaskStore;
+  use CataractSchema;
   use TaskJson;
   use JsonField;
   use Problem;
@@ -9,8 +9,8 @@ module ApiTask {
     const id = ctx.paramInt("id", -1);
     if id < 0 then return problem(400, "id must be a positive integer");
 
-    var t: TaskStore.Task;
-    if !TaskStore.find(id, t) then return problem(404, "no task with id " + id: string);
+    var t: Task;
+    if !taskById(id, t) then return problem(404, "no task with id " + id: string);
 
     var b = new JsonBuilder();
     writeTask(b, t);
@@ -25,8 +25,8 @@ module ApiTask {
     if !JsonField.present(payload, "done") then
       return problem(422, "expected {\"done\": true} or {\"done\": false}");
 
-    var t: TaskStore.Task;
-    if !TaskStore.setDone(id, JsonField.flag(payload, "done", false), t) then
+    var t: Task;
+    if !setTaskDone(JsonField.flag(payload, "done", false), id, t) then
       return problem(404, "no task with id " + id: string);
 
     var b = new JsonBuilder();
@@ -38,7 +38,7 @@ module ApiTask {
   proc del(ctx: Context): Response {
     const id = ctx.paramInt("id", -1);
     if id < 0 then return problem(400, "id must be a positive integer");
-    if !TaskStore.remove(id) then return problem(404, "no task with id " + id: string);
+    if !deleteTask(id) then return problem(404, "no task with id " + id: string);
     return noContent();
   }
 }

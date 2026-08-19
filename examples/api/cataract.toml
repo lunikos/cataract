@@ -6,6 +6,7 @@ version = "0.1.0"
 app = "app"
 routes = "app/routes"
 lib = "app/lib"
+db = "app/db"
 out = ".cataract"
 dist = "dist"
 runtime = "../../src/runtime"
@@ -18,6 +19,10 @@ max_body_bytes = 65536
 keep_alive_ms = 5000
 header_timeout_ms = 10000
 log_level = "info"
+
+# Rows live here between runs; leave it unset for an in-memory table.
+[database]
+path = "data"
 
 [build]
 optimize = true

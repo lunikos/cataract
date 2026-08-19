@@ -62,7 +62,8 @@ module Commands {
 
     writeln(CliHost.green("built"), " ", result.binary, "  (", plan.bundle.pageCount(),
             " pages, ", plan.bundle.apiCount(), " api routes, ",
-            plan.bundle.socketCount(), " sockets, ", plan.assets.copied,
+            plan.bundle.socketCount(), " sockets, ",
+            plan.bundle.database.tableCount(), " tables, ", plan.assets.copied,
             " assets) in ", fmt(result.seconds), "s");
     return 0;
   }

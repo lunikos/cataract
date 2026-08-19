@@ -1,6 +1,7 @@
 module Manifest {
   private use List;
   private use Map;
+  private use Sql only Database;
 
   enum EntryKind { page, api, socket }
 
@@ -33,6 +34,7 @@ module Manifest {
 
   record Bundle {
     var routes: list(RouteEntry);
+    var database: Database;
     var layouts: map(string, LayoutEntry);
     var islands: list(IslandEntry);
     var pageModules: list(string);

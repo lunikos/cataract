@@ -1,6 +1,6 @@
 module ApiTasks {
   use Cataract;
-  use TaskStore;
+  use CataractSchema;
   use TaskJson;
   use JsonField;
   use Problem;
@@ -21,23 +21,21 @@ module ApiTasks {
       if limit < 1 then return problem(400, "limit must be at least 1");
     }
 
-    const tasks = TaskStore.snapshot();
+    const rows = if status.isEmpty() then allTasks() else tasksByState(status == "done");
     var emitted = 0;
 
     var b = new JsonBuilder();
     b.beginObject();
     b.key("tasks");
     b.beginArray();
-    for t in tasks {
-      if status == "open" && t.done then continue;
-      if status == "done" && !t.done then continue;
+    for t in rows {
       if limit > 0 && emitted >= limit then break;
       writeTask(b, t);
       emitted += 1;
     }
     b.endArray();
     b.field("returned", emitted);
-    b.field("total", tasks.size);
+    b.field("total", countTasks());
     b.endObject();
 
     return jsonResponse(b.done());
@@ -52,7 +50,7 @@ module ApiTasks {
     if title.isEmpty() then return problem(422, "title is required");
     if title.size > 120 then return problem(422, "title must be 120 characters or fewer");
 
-    const created = TaskStore.add(title);
+    const created = addTask(title);
 
     var b = new JsonBuilder();
     writeTask(b, created);

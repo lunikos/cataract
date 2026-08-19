@@ -17,6 +17,7 @@ module AppConfig {
     var islandsDir: string = "app/islands";
     var libDir: string = "app/lib";
     var publicDir: string = "app/public";
+    var dbDir: string = "app/db";
 
     var outDir: string = ".cataract";
     var distDir: string = "dist";
@@ -35,6 +36,8 @@ module AppConfig {
     var socketIdleTimeoutMillis: int = 300000;
     var socketSendTimeoutMillis: int = 10000;
     var socketSubprotocols: string = "";
+
+    var databaseDir: string = "";
 
     var affinity: string = "pinned";
     var stickyKey: string = "sid";
@@ -140,6 +143,7 @@ module AppConfig {
       when "paths.islands" do cfg.islandsDir = value;
       when "paths.lib" do cfg.libDir = value;
       when "paths.public" do cfg.publicDir = value;
+      when "paths.db" do cfg.dbDir = value;
       when "paths.out" do cfg.outDir = value;
       when "paths.dist" do cfg.distDir = value;
       when "paths.runtime" do cfg.runtimeDir = value;
@@ -166,6 +170,8 @@ module AppConfig {
         cfg.socketSendTimeoutMillis = toInt(value, cfg.socketSendTimeoutMillis, path, line,
                                             diags);
       when "server.socket_subprotocols" do cfg.socketSubprotocols = value;
+
+      when "database.path" do cfg.databaseDir = value;
 
       when "distribution.affinity" do cfg.affinity = value;
       when "distribution.sticky_key" do cfg.stickyKey = value;

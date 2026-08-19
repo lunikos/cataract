@@ -1,5 +1,6 @@
 .cataract/
 dist/
+data/
 bin/
 *.o
 *.dSYM/

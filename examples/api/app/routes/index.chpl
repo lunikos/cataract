@@ -1,13 +1,13 @@
 module ApiIndex {
   use Cataract;
-  use TaskStore;
+  use CataractSchema;
 
   proc get(ctx: Context): Response {
     var b = new JsonBuilder();
     b.beginObject();
     b.field("service", "tasks-api");
     b.field("runtime", "cataract/" + Cataract.version);
-    b.field("tasks", TaskStore.count());
+    b.field("tasks", countTasks());
     b.key("endpoints");
     b.beginArray();
     for e in ["GET /tasks", "POST /tasks", "GET /tasks/[id]",

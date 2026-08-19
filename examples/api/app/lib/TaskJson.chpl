@@ -1,6 +1,6 @@
 module TaskJson {
   use Cataract;
-  use TaskStore only Task;
+  use CataractSchema only Task;
 
   proc writeTask(ref b: JsonBuilder, const ref t: Task) {
     b.beginObject();

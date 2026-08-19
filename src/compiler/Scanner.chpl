@@ -9,6 +9,7 @@ module Scanner {
   private use Manifest;
   private use Text;
   private use AppConfig;
+  private use Sql;
 
   /* [id] is one segment, [...name] the rest, (group) none, _ and . skipped. */
   proc scanRoutes(const ref cfg: ProjectConfig, root: string, ref diags: Bag): Bundle throws {
@@ -73,6 +74,7 @@ module Scanner {
       bundle.routes.pushBack(entry);
     }
 
+    scanDatabase(cfg, root, bundle, diags);
     scanLayouts(cfg, root, bundle, bundle.pageCount() > 0, diags);
     scanIslands(cfg, root, bundle, diags);
     scanLib(cfg, root, diags);
@@ -410,6 +412,28 @@ module Scanner {
         diags.error(path, 0, "library file has no module declaration",
                     "wrap the file in `module Name { ... }`");
     }
+  }
+
+  private proc scanDatabase(const ref cfg: ProjectConfig, root: string,
+                            ref bundle: Bundle, ref diags: Bag) throws {
+    const dir = resolveIn(root, cfg.dbDir);
+    const schemaPath = joinPath(dir, "schema.sql");
+    if !isFile(schemaPath) then return;
+
+    bundle.database.present = true;
+    bundle.database.schema = parseSchema(schemaPath, diags);
+
+    const queryPath = joinPath(dir, "queries.sql");
+    if isFile(queryPath) then
+      bundle.database.queries = parseQueries(queryPath, bundle.database.schema, diags);
+
+    const seedPath = joinPath(dir, "seed.sql");
+    if isFile(seedPath) then
+      bundle.database.seeds = parseSeeds(seedPath, bundle.database.schema, diags);
+
+    if bundle.database.schema.order.isEmpty() then
+      diags.error(schemaPath, 0, "schema file declares no tables",
+                  "write CREATE TABLE statements, or remove the file");
   }
 
   private proc scanIslands(const ref cfg: ProjectConfig, root: string,
