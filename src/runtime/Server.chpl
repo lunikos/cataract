@@ -76,6 +76,10 @@ module Server {
       router.register(pattern, methodMask, kind, source, handler);
     }
 
+    proc seal() {
+      router.seal();
+    }
+
     proc listenAndServe() throws {
       router.seal();
       installShutdownHandlers();

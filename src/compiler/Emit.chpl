@@ -189,6 +189,7 @@ module Emit {
     var sb = BANNER;
     sb += "module GeneratedRoutes {\n";
     sb += "  use Cataract;\n";
+    sb += "  use List;\n";
     sb += "  use CataractAssets;\n";
     for m in bundle.pageModules do sb += "  use " + m + ";\n";
     for m in bundle.apiModules do sb += "  use " + m + ";\n";
@@ -207,6 +208,8 @@ module Emit {
       sb += "\n";
     }
 
+    sb += staticTargets(bundle);
+
     sb += "  proc registerRoutes(app: borrowed App) throws {\n";
     for r in bundle.routes {
       sb += "    app.route(" + chplLiteral(r.pattern) + ", " +
@@ -215,6 +218,27 @@ module Emit {
     }
     sb += "  }\n";
     sb += "}\n";
+    return sb;
+  }
+
+  private proc staticTargets(const ref bundle: Bundle): string throws {
+    var sb = "  proc staticTargets(): list(string) throws {\n";
+    sb += "    var paths: list(string);\n";
+
+    for r in bundle.routes {
+      if r.kind == EntryKind.socket then continue;
+      if r.kind == EntryKind.api && !listContains(r.methods, "GET") then continue;
+
+      if r.params.isEmpty() {
+        sb += "    paths.pushBack(" + chplLiteral(r.pattern) + ");\n";
+      } else if r.declaresStaticPaths {
+        sb += "    for known in " + r.moduleName + ".staticPaths() do\n";
+        sb += "      paths.pushBack(known);\n";
+      }
+    }
+
+    sb += "    return paths;\n";
+    sb += "  }\n\n";
     return sb;
   }
 
@@ -461,6 +485,7 @@ module Emit {
     sb += "  use AccessLog;\n";
     sb += "  use SecurityHeaders;\n";
     sb += "  use StaticFiles;\n";
+    sb += "  use StaticExport;\n";
     if bundle.database.present then sb += "  use CataractSchema;\n";
     sb += "\n";
 
@@ -487,6 +512,7 @@ module Emit {
     sb += "  config const exposeLocale = " +
            (if cfg.exposeLocale then "true" else "false") + ";\n";
     sb += "  config const staticRoot = " + chplLiteral(publicOut) + ";\n";
+    sb += "  config const staticOut = \"\";\n";
     sb += "  config const devMode = false;\n";
     sb += "  config const hstsSeconds = " + cfg.hstsSeconds:string + ";\n";
     sb += "  config const allowedOrigins = " + chplLiteral(cfg.allowedOrigins) + ";\n\n";
@@ -533,12 +559,22 @@ module Emit {
 
     sb += "    try {\n";
     sb += "      registerRoutes(app.borrow());\n";
+    sb += "      if !staticOut.isEmpty() then return exportStatic(app.borrow());\n";
     sb += "      app.listenAndServe();\n";
     sb += "    } catch e {\n";
     sb += "      logError(e.message());\n";
     sb += "      return 1;\n";
     sb += "    }\n";
     sb += "    return 0;\n";
+    sb += "  }\n\n";
+
+    sb += "  proc exportStatic(app: borrowed App): int throws {\n";
+    sb += "    const summary = exportSite(app, staticOut, staticTargets(), staticRoot,\n";
+    sb += "                               host + \":\" + port:string);\n";
+    sb += "    logInfo(\"exported \" + summary.written:string + \" page(s), \" +\n";
+    sb += "            summary.copied:string + \" asset(s), skipped \" +\n";
+    sb += "            summary.skipped:string + \", failed \" + summary.failed:string);\n";
+    sb += "    return if summary.failed > 0 then 1 else 0;\n";
     sb += "  }\n";
     sb += "}\n";
     return sb;

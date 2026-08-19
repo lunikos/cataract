@@ -18,6 +18,7 @@ module Manifest {
     var layout: string = "root";
     var specificity: int = 0;
     var throwsRender: bool = false;
+    var declaresStaticPaths: bool = false;
   }
 
   record LayoutEntry {

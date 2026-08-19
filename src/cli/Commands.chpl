@@ -24,6 +24,8 @@ module Commands {
     var port: int = -1;
     var watchIntervalMillis: int = 400;
     var force: bool = false;
+    var staticSite: bool = false;
+    var staticOut: string = "";
     var shutdownGraceMillis: int = 5000;
     var cachedBinaries: int = 8;
   }
@@ -46,12 +48,41 @@ module Commands {
   proc build(const ref opts: Options, ref diags: Bag): int throws {
     const result = compileProject(opts, diags);
     report(result, opts);
-    return if result.ok then 0 else 1;
+    if !result.ok then return 1;
+    if !opts.staticSite then return 0;
+    return exportStatic(opts, result, diags);
+  }
+
+  private proc exportStatic(const ref opts: Options, const ref result: BuildResult,
+                            ref diags: Bag): int throws {
+    const cfg = AppConfig.load(joinPath(opts.root, opts.configPath), diags);
+    const target = if opts.staticOut.isEmpty()
+                   then joinPath(resolveIn(opts.root, cfg.distDir), "static")
+                   else resolveIn(opts.root, opts.staticOut);
+
+    writeln("exporting to ", target);
+    stdout.flush();
+
+    var argv: list(string);
+    argv.pushBack(result.binary);
+    argv.pushBack("--staticOut=" + target);
+    argv.pushBack("--logLevel=" + cfg.logLevel);
+
+    const code = run(argv, diags);
+    if code != 0 {
+      diags.error(result.binary, 0,
+                  "static export failed with exit code " + code:string);
+      diags.raiseIfFailed("export");
+    }
+    writeln(CliHost.green("exported"), " ", target);
+    return 0;
   }
 
   proc compileProject(const ref opts: Options, ref diags: Bag): BuildResult throws {
     var plan = analyze(opts, diags);
     diags.raiseIfFailed("scan");
+
+    if opts.staticSite then noteDynamicRoutes(plan.bundle, diags);
 
     plan.assets = Assets.build(plan.cfg, opts.root, plan.bundle, diags);
     diags.raiseIfFailed("assets");
@@ -108,6 +139,16 @@ module Commands {
       Cache.save(cacheDir, stamps, diags);
     }
     return result;
+  }
+
+  private proc noteDynamicRoutes(const ref bundle: Bundle, ref diags: Bag) throws {
+    for r in bundle.routes {
+      if r.kind != EntryKind.page || r.params.isEmpty() || r.declaresStaticPaths then
+        continue;
+      diags.warn(r.sourcePath, 0, r.pattern + " has no static form and was not exported",
+                 "declare `proc staticPaths(): list(string)` listing the paths to " +
+                 "render");
+    }
   }
 
   private proc report(const ref result: BuildResult, const ref opts: Options) throws {

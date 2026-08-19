@@ -8,7 +8,7 @@ CHPLFLAGS ?= --fast
 EXAMPLES  := blog api docs dashboard
 EXAMPLE   ?= blog
 
-.PHONY: all cli examples lint dev routes clean distclean $(EXAMPLES)
+.PHONY: all cli examples lint dev routes static clean distclean $(EXAMPLES)
 
 all: cli
 
@@ -38,8 +38,12 @@ dev: cli
 routes: cli
 	$(CLI_BIN) routes --root examples/$(EXAMPLE)
 
+static: cli
+	$(CLI_BIN) build --root examples/$(EXAMPLE) --static
+
 clean:
 	rm -rf $(addsuffix /.cataract,$(addprefix examples/,$(EXAMPLES))) \
+	       $(addsuffix /data,$(addprefix examples/,$(EXAMPLES))) \
 	       $(addsuffix /dist,$(addprefix examples/,$(EXAMPLES)))
 
 distclean: clean

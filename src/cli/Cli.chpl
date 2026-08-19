@@ -12,6 +12,7 @@ module Cli {
            "usage: cataract <command> [options]\n\n" +
            "commands:\n" +
            "  build              scan routes, generate sources, compile a binary\n" +
+           "  build --static     render every static route to a directory of files\n" +
            "  dev                rebuild and restart on change\n" +
            "  routes             print the compiled route table in match order\n" +
            "  new <name>         scaffold a new application\n" +
@@ -22,6 +23,8 @@ module Cli {
            "(default: cataract.toml)\n" +
            "  --port <n>         override server.port\n" +
            "  --watch-ms <n>     dev poll interval in milliseconds (default: 400)\n" +
+           "  --static           render every static route to files and exit\n" +
+           "  --static-out <dir> where --static writes (default: dist/static)\n" +
            "  --force            rebuild even when nothing changed\n" +
            "  --grace-ms <n>     dev shutdown grace period (default: 5000)\n" +
            "  --notes            include notes in diagnostic output\n";
@@ -68,6 +71,11 @@ module Cli {
             } catch {
               return invalid(inv, "--watch-ms expects an integer, got \"" + raw + "\"");
             }
+          }
+          when "--static" do inv.opts.staticSite = true;
+          when "--static-out" {
+            if !takeValue(argv, i, inv.opts.staticOut, inv) then return inv;
+            inv.opts.staticSite = true;
           }
           when "--force" do inv.opts.force = true;
           when "--grace-ms" {

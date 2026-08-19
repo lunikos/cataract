@@ -1,8 +1,15 @@
 module PageDoc {
   use Cataract;
+  use List;
   use Pages;
 
   param layout = "doc";
+
+  proc staticPaths(): list(string) throws {
+    var known: list(string);
+    for doc in Pages.all() do known.pushBack("/docs/" + doc.slug);
+    return known;
+  }
 
   proc page(ctx: Context, ref meta: PageMeta): string {
     /* A catch-all arrives whole: "guide/routing", not two parameters. */

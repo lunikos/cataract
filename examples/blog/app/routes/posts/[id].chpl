@@ -1,6 +1,14 @@
 module PagePost {
   use Cataract;
+  use CataractUrls;
+  use List;
   use PostStore;
+
+  proc staticPaths(): list(string) throws {
+    var known: list(string);
+    for post in PostStore.all() do known.pushBack(url(Route.postsId, post.id));
+    return known;
+  }
 
   proc page(ctx: Context, ref meta: PageMeta): string {
     const id = ctx.pathParam("id");

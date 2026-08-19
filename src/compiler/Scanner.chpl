@@ -232,6 +232,8 @@ module Scanner {
       diags.error(path, 0, "`delete` is a Chapel keyword and cannot name a procedure",
                   "spell the DELETE handler `proc del(ctx: Context): Response`");
 
+    entry.declaresStaticPaths = findProc(source, "staticPaths") >= 0;
+
     const pageAt = findProc(source, "page");
     if pageAt >= 0 {
       if !entry.methods.isEmpty() {
