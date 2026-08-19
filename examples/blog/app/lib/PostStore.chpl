@@ -7,7 +7,6 @@ module PostStore {
     var published: string;
   }
 
-  /* Never mutated, so every task reads it without synchronisation. */
   private const posts = [
     new Post("hello-chapel",
              "Why Chapel for a web runtime",

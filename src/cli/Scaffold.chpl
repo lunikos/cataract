@@ -65,8 +65,6 @@ module Scaffold {
   private proc chapelPage(name: string): string throws {
     return "module PageIndex {\n" +
            "  use Cataract;\n\n" +
-           "  // A module exporting `page` is a page; one exporting get/post/... is an\n" +
-           "  // API route. The file extension decides nothing.\n" +
            "  proc page(ctx: Context, ref meta: PageMeta): string {\n" +
            "    meta.title = " + quoted(name) + ";\n" +
            "    meta.description = \"A Cataract application\";\n\n" +

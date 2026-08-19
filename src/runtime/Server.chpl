@@ -47,7 +47,7 @@ module Server {
     var exposeLocaleHeader: bool = false;
     var limits: Limits;
   }
-  
+
   class App {
     var settings: ServerConfig;
     var router: owned Router = new Router();
@@ -107,7 +107,6 @@ module Server {
                    "  locale=" + here.id:string + "/" + numLocales:string +
                    "  affinity=" + affinityName(settings.affinity));
 
-      /* `sync` so no connection task outlives the scope holding the gate. */
       sync {
         while !shutdownRequested() {
           var idle = false;
@@ -228,7 +227,6 @@ module Server {
       return true;
     }
 
-    /* Every exit unwinds through `runAfter`, so nothing strands the hardening. */
     proc handle(ref ctx: Context): Response {
       var res = new Response();
       const (handled, entered) = chain.runBefore(ctx, res);
@@ -280,7 +278,7 @@ module Server {
     }
 
     proc wantsJson(const ref ctx: Context): bool {
-      /* No pages means no HTML surface, so errors must not arrive as documents. */
+
       if router.pageCount() == 0 then return true;
       if ctx.request.path.startsWith("/api/") then return true;
       const accept = ctx.request.header("Accept");

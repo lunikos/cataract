@@ -38,7 +38,6 @@ module Diagnostics {
     override proc message(): string do return detail;
   }
 
-  /* Collected rather than thrown, so one build reports every problem at once. */
   record Bag {
     var items: list(Diagnostic);
     var errorCount: int = 0;

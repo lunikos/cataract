@@ -27,7 +27,6 @@ module HttpMethod {
     }
   }
 
-  /* HEAD is served by the GET handler with the body elided at write time. */
   proc effectiveMethod(m: Method): Method {
     return if m == Method.head then Method.get else m;
   }

@@ -62,12 +62,10 @@ module Emit {
     result.files.pushBack(path);
   }
 
-  /* Unversioned under `dev`: a stylesheet edit would otherwise rewrite this
-     module and cost a full recompile for a file the server reads from disk. */
   private proc assetsModule(const ref assets: AssetTable, devMode: bool): string throws {
     var sb = BANNER;
     sb += "module CataractAssets {\n";
-    /* A select, so asset lookup compiles to a jump table, not a runtime map. */
+
     sb += "  proc asset(path: string): string {\n";
 
     var keys: list(string);
@@ -352,7 +350,6 @@ module Emit {
     return sb;
   }
 
-  /* `delete` is a Chapel keyword; enum constant and handler both spell it `del`. */
   proc enumConstant(httpMethod: string): string throws {
     const lower = httpMethod.toLower();
     return if lower == "delete" then "del" else lower;
@@ -540,7 +537,6 @@ module Emit {
 
     if bundle.database.present then sb += "    openDatabase();\n\n";
     sb += "    var app = new owned App(serverConfig);\n\n";
-    sb += "    // Entry order is unwind order reversed: the logger wraps everything.\n";
     sb += "    app.addMiddleware(new shared AccessLogger());\n";
 
     sb += "    var guard = new shared SecurityGuard();\n";

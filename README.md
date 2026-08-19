@@ -3,9 +3,9 @@
 # Cataract
 
 A full-stack web framework for [Chapel](https://chapel-lang.org). File-system
-routing, server-side rendering, partial hydration and an HTTP/1.1 server on raw
-BSD sockets, compiled into one binary. Application code is Chapel throughout;
-there is no template language.
+routing, server-side rendering, partial hydration, WebSockets and an HTTP/1.1
+server on raw BSD sockets, compiled into one binary. Application code is Chapel
+throughout; there is no template language.
 
 <br clear="right">
 
@@ -24,20 +24,54 @@ A page is a module exporting `page`; the file's location gives it a path.
 ```chapel
 module PageIndex {
   use Cataract;
+  use CataractUrls;
 
   proc page(ctx: Context, ref meta: PageMeta): string {
     meta.title = "Posts";
     var h = new MarkupBuilder();
     h.el("h1", "Posts");
-    for p in PostStore.all() do h.el("a", p.title, "href", "/posts/" + p.id);
+    for p in PostStore.all() do
+      h.el("a", p.title, "href", url(Route.postsId, p.id));
     return h.done();
   }
 }
 ```
 
+A module exporting `get`, `post` and friends is an API route; one exporting
+`socket` is a WebSocket endpoint.
+
+```chapel
+proc socket(ctx: Context, ws: shared WebSocket) throws {
+  Rooms.join("lobby", ws);
+  defer Rooms.leave("lobby", ws);
+
+  var incoming = new Message();
+  while ws.receive(incoming) do
+    Rooms.broadcast("lobby", incoming.text(), ws.id);
+}
+```
+
+What the toolchain works out before the server runs:
+
+- **routes** — the tree under `app/routes` is the route table, and every route
+  is also a `Route` enum constant, so `url(Route.postsId, id)` is checked, with
+  its argument count, at compile time
+- **queries** — `app/db/schema.sql` becomes typed Chapel records, and each named
+  query in `queries.sql` becomes a procedure whose arguments are typed by the
+  columns they compare against; an unknown column is a build error
+- **middleware** — a `[middleware]` section declares groups by path prefix, with
+  built-in rate limiting, CORS and CSRF
+- **assets** — `app/public` is hashed and content-addressed, and islands are
+  concatenated into one client bundle
+
 `build`, `dev` (rebuild and restart on change), `routes` (print the table in
-match order) and `new` are the whole CLI. Every server setting is a Chapel
-`config const`, so a built binary is reconfigurable without a rebuild:
+match order) and `new` are the whole CLI. `build --static` renders every static
+route to a directory of files. Rebuilds skip the compiler entirely when nothing
+it reads has changed, and `dev` keeps the server running for a change that only
+touches assets.
+
+Every server setting is a Chapel `config const`, so a built binary is
+reconfigurable without a rebuild:
 `./dist/blog --port=8080 --logLevel=debug`.
 
 ## Documentation
@@ -45,20 +79,27 @@ match order) and `new` are the whole CLI. Every server setting is a Chapel
 - [Project layout and configuration](documentation/project.md)
 - [Routing and handlers](documentation/routing.md)
 - [Pages, layouts, islands and assets](documentation/rendering.md)
+- [WebSockets and rooms](documentation/realtime.md)
+- [Compile-time SQL](documentation/data.md)
+- [Middleware](documentation/middleware.md)
+- [Static export, locales and shutdown](documentation/deployment.md)
 - [Architecture and security](documentation/internals.md)
 
 ## Examples
 
-Four standalone projects under [`examples/`](examples): `blog` (the full stack),
-`api` (headless JSON, mutable shared state), `docs` (catch-all routes, route
-groups, two layouts), `dashboard` (query filters, status codes from a page).
-`make examples` builds all four; `make run-blog` runs one.
+Four standalone projects under [`examples/`](examples): `blog` (the full stack,
+reverse-routed links, a CSRF-guarded API), `api` (headless JSON on a generated
+schema), `docs` (catch-all routes, route groups, two layouts, static export),
+`dashboard` (query filters, a WebSocket room, an island that refreshes itself).
+`make examples` builds all four; `make run-blog` runs one and `make static`
+exports one.
 
 ## Contributing
 
 `make` builds the toolchain, `make examples` exercises it end to end and
 `make lint` runs chplcheck against the project's own rules; all three must pass.
-Keep comments to architectural context and C-interop caveats, open an issue
-before changing the public API, and report security issues privately.
+Chapel sources carry no comments — names and structure are the explanation, and
+anything that needs prose belongs in `documentation/`. Open an issue before
+changing the public API, and report security issues privately.
 
-Version 0.2.1. The public API is not yet stable.
+Version 0.3.0. The public API is not yet stable.

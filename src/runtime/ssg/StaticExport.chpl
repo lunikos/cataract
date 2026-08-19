@@ -61,8 +61,6 @@ module StaticExport {
     return app.handle(ctx);
   }
 
-  /* A page becomes a directory index so its URL keeps working without a
-     rewrite rule; anything else keeps the exact path it was requested at. */
   private proc destinationFor(path: string, const ref res: Response): string {
     var relative = path;
     while relative.startsWith("/") do relative = relative[1..];

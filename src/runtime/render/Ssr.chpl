@@ -18,12 +18,10 @@ module Ssr {
     var stylesheets: list(string);
     var scripts: list(string);
     var needsClientRuntime: bool = false;
-    /* A page that renders "not found" must be able to say 404. */
+
     var status: int = 200;
   }
 
-  /* Declaring an island is what sets `needsClientRuntime`; layouts run before
-     `renderDocument`, so the flag is always in time. */
   proc island(ref meta: PageMeta, name: string, propsJson: string,
               serverHtml: string): string {
     meta.needsClientRuntime = true;

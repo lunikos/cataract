@@ -1,7 +1,6 @@
 module ByteBuffer {
   private use CSocket;
 
-  /* Chapel-owned storage; `ptr()` lends C a pointer any append invalidates. */
   record Bytes {
     var dom: domain(1) = {0..<0};
     var data: [dom] uint(8);
@@ -65,7 +64,6 @@ module ByteBuffer {
     }
   }
 
-  /* Invalid UTF-8 is replaced, not thrown: a bad request must not kill a task. */
   proc sliceToString(const ref buf: [] uint(8), lo: int, hi: int): string {
     if hi <= lo then return "";
     const n = hi - lo;

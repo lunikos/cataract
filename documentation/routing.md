@@ -26,9 +26,10 @@ directories: `/api` above is a choice, not a convention.
 **`[...name]`** matches one or more segments and captures them as a single string
 with the separators intact. It must be the last segment.
 
+In `routes/docs/[...path].chpl`, matching `/docs/guide/routing`:
+
 ```chapel
-// routes/docs/[...path].chpl  matching /docs/guide/routing
-const slug = ctx.pathParam("path");   // "guide/routing"
+const slug = ctx.pathParam("path");   # "guide/routing"
 ```
 
 A catch-all does not match the parent path: `/docs/[...path]` does not answer
@@ -44,15 +45,19 @@ routes/(marketing)/pricing.chpl   ->  /pricing
 **`_` and `.`** — any name beginning with either is skipped, directories
 included, and is never scanned or compiled. Such files can be partial work.
 
-## Pages and API routes
+## Pages, API routes and sockets
 
-A module exporting `proc page` is a page. A module exporting procedures named for
-HTTP methods is an API route. Declaring both is an error.
+What a module declares decides what it is. Declaring more than one kind is an
+error.
 
 ```chapel
-proc page(ctx: Context, ref meta: PageMeta): string      // a page
-proc get(ctx: Context): Response                         // an API route
+proc page(ctx: Context, ref meta: PageMeta): string      # a page
+proc get(ctx: Context): Response                         # an API route
+proc socket(ctx: Context, ws: shared WebSocket)          # a WebSocket endpoint
 ```
+
+Sockets are covered in [Real-time](realtime.md); the rest of this page is about
+the first two.
 
 Handler names are `get`, `post`, `put`, `patch`, `del` and `options`. `del`
 serves `DELETE`; `delete` is a Chapel keyword and cannot name a procedure, and
@@ -101,13 +106,75 @@ a hash lookup. Everything else walks a list pre-sorted by specificity:
 The first structural match is therefore the most specific one, with no
 backtracking. Given `/posts/new`, `/posts/[id]` and `/posts/[...rest]`, a request
 for `/posts/new` matches the literal route. `cataract routes` prints the compiled
-table in this order.
+table in this order, with each route's `Route` constant beside it.
 
 Two files resolving to the same path and the same method set are a build error.
 The same path with disjoint methods is allowed; the masks merge for `Allow`.
 
 When a path matches but no handler accepts the method, the response is `405` with
 an `Allow` header. When nothing matches, `404`.
+
+## Reverse routing
+
+Every route also becomes a constant in a generated enum, and `url` turns one
+into a path. Writing links this way means a route that moves breaks the build
+rather than the site.
+
+```chapel
+module PagePosts {
+  use Cataract;
+  use CataractUrls;
+  use PostStore;
+
+  proc page(ctx: Context, ref meta: PageMeta): string {
+    var h = new MarkupBuilder();
+    h.el("a", "All posts", "href", url(Route.posts));
+    for p in PostStore.all() do
+      h.el("a", p.title, "href", url(Route.postsId, p.id));
+    return h.done();
+  }
+}
+```
+
+The constant is derived from the pattern: `/` is `Route.root`, `/about` is
+`Route.about`, `/api/health` is `Route.apiHealth`, `/posts/[id]` is
+`Route.postsId` and `/docs/[...path]` is `Route.docsPath`. `cataract routes`
+prints them, and two patterns that would collide get a numbered suffix.
+
+The number of arguments is checked at compile time, because the constant is a
+`param` and the check folds away with it:
+
+```chapel
+url(Route.postsId)                    # error: Route.postsId needs 1 path argument
+url(Route.postsId, p.id, "extra")     # error: needs exactly 1 path argument
+url(Route.posts, p.id)                # error: Route.posts takes no path arguments
+```
+
+Arguments may be `string`, `int` or `bool`. A `[name]` argument is
+percent-encoded whole, so a value containing `/` cannot invent a segment; a
+`[...name]` argument keeps its separators and encodes each segment. `query`
+builds the trailing pairs:
+
+```chapel
+url(Route.posts) + query("page", 2, "tag", "chapel")   # /posts?page=2&tag=chapel
+```
+
+`pathPattern(route)` returns the uncompiled pattern — `"/posts/[id]"` — which is
+useful in logs and diagnostics.
+
+## Static paths
+
+A page with dynamic segments can say which of them exist, which is what
+`cataract build --static` renders. See
+[Static export](deployment.md#static-export).
+
+```chapel
+proc staticPaths(): list(string) throws {
+  var known: list(string);
+  for post in PostStore.all() do known.pushBack(url(Route.postsId, post.id));
+  return known;
+}
+```
 
 ## Context
 
@@ -119,6 +186,7 @@ an `Allow` header. When nothing matches, `404`.
 | `setLocal(name, value)` / `getLocal(name, fallback)` | per-request scratch state |
 | `method()` / `path()` | the request method and normalised path |
 | `requestId` | `ip:port#n`, also used by the access log |
+| `localeId` | the locale the handler was placed on |
 | `request` | the parsed request |
 
 `ctx.request` carries `header(name)`, `contentType()`, `bodyText()`,
@@ -187,6 +255,12 @@ handler runs.
 A `POST`, `PUT` or `PATCH` with neither `Content-Length` nor `Transfer-Encoding`
 is rejected with `411`, before routing. Chunked bodies are decoded; trailers are
 consumed and discarded rather than merged into the headers.
+
+## Generated data access
+
+A project with `app/db/schema.sql` gets typed records and query procedures for
+free, and its handlers call them like any other procedure. See
+[Compile-time SQL](data.md).
 
 ## Headless projects
 

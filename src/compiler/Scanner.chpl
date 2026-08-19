@@ -11,7 +11,6 @@ module Scanner {
   private use AppConfig;
   private use Sql;
 
-  /* [id] is one segment, [...name] the rest, (group) none, _ and . skipped. */
   proc scanRoutes(const ref cfg: ProjectConfig, root: string, ref diags: Bag): Bundle throws {
     var bundle = new Bundle();
 
@@ -194,8 +193,6 @@ module Scanner {
     return sb;
   }
 
-  /* What a module declares decides what it is. The module name is explicit
-     because two index.chpl files would otherwise collide. */
   private proc readRouteModule(path: string, ref entry: RouteEntry,
                                ref diags: Bag) throws {
     const source = readSource(path, "route", diags);
@@ -217,7 +214,6 @@ module Scanner {
       return;
     }
 
-    /* `delete` cannot name a Chapel procedure, so DELETE is spelled `del`. */
     const handlers = [("get", "GET"), ("post", "POST"), ("put", "PUT"),
                       ("patch", "PATCH"), ("del", "DELETE"), ("options", "OPTIONS")];
 

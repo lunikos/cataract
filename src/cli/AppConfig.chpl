@@ -259,7 +259,6 @@ module AppConfig {
     return joinPath(root, relative);
   }
 
-  /* A configured path that exists wins, so a vendored runtime is never bypassed. */
   proc resolveRuntime(const ref cfg: ProjectConfig, root: string): string throws {
     const configured = resolveIn(root, cfg.runtimeDir);
     if isDir(configured) then return configured;

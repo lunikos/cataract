@@ -12,7 +12,7 @@ module PageDoc {
   }
 
   proc page(ctx: Context, ref meta: PageMeta): string {
-    /* A catch-all arrives whole: "guide/routing", not two parameters. */
+
     const slug = ctx.pathParam("path");
     var doc: Pages.Doc;
 

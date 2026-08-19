@@ -4,7 +4,6 @@ module DocLayout {
   use Chrome;
   use Pages;
 
-  /* The island is in the layout, so every page using it ships the runtime. */
   proc layout(ctx: Context, slot: string, ref meta: PageMeta): string {
     meta.icon = asset("/img/logo.svg");
 

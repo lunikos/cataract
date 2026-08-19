@@ -7,9 +7,9 @@ share only the generated code.
 ## The build
 
 ```
-scan      walk app/routes, read each module, build a route manifest
+scan      walk app/routes, read each module, parse app/db/*.sql, build a manifest
 assets    copy public/, hash each file, concatenate the island bundle
-codegen   emit CataractAssets, GeneratedRoutes and CataractMain
+codegen   emit CataractAssets, GeneratedRoutes, CataractUrls, CataractSchema, CataractMain
 compile   invoke chpl over the runtime, the generated modules and app/
 ```
 
@@ -25,6 +25,19 @@ identical bytes does not trigger a rebuild, and neither does `touch`. Size and
 mtime decide only whether a watched file has to be reread, so a poll that finds
 nothing moved reads nothing. Generated files whose content is unchanged are not
 rewritten, so `chpl` does not rebuild the world.
+
+The compile stage is skipped outright when its own fingerprint — the Chapel and
+C sources, the SQL files, the generated modules and the compiler flags — matches
+the last build, and a binary keyed by that fingerprint is kept under
+`.cataract/cache` so reverting an edit restores rather than recompiles. Stylesheets
+and island scripts are deliberately absent from that fingerprint: they reach the
+binary only through the generated asset table, and under `dev` that table carries
+no digests, so editing them recompiles nothing.
+
+The SQL layer is entirely a build-time concern. `schema.sql` and `queries.sql`
+are tokenised and checked against each other during the scan, and what reaches
+the binary is straight-line Chapel over typed records. There is no query parser
+in the runtime, and no way to reach one from a request.
 
 ## The request path
 
@@ -49,6 +62,28 @@ cannot strand logging or header hardening.
 Route patterns compile to segment lists at start-up. Handlers are virtual methods
 on a generated class rather than first-class procedures, so each route carries
 its own compile-time state without instantiating the router generically.
+
+A middleware group is one stage holding a chain of its own. Because a stage
+object is shared across concurrent requests, the count of inner stages entered
+lives in the request's `locals` rather than on the group, which is what lets a
+short-circuit inside a group unwind exactly the stages it entered.
+
+Handler placement is the one point where a request can leave the accepting
+locale. `Placement.localeFor` returns a locale id from the configured affinity
+rule, and only the `dispatch` call is wrapped in an `on` statement; parsing and
+the response write stay where the descriptor is. Under the default `pinned`
+affinity there is no `on` statement at all.
+
+A WebSocket upgrade is checked from the request headers before routing, so an
+ordinary request pays one header comparison for the feature. Once upgraded, the
+connection leaves the request loop for good: the handler owns it until it
+returns, and the framing codec reads through the same sliding-window buffer the
+HTTP parser uses. Writes go straight to the descriptor behind a per-socket lock,
+which is what lets another task broadcast into a socket it does not own.
+
+`--staticOut` reuses the request path rather than shadowing it. Each exported
+path is turned into a synthetic `Request`, run through `App.handle`, and written
+to disk, so the exported document is the one the server would have sent.
 
 ## Why every socket is non-blocking
 
@@ -234,11 +269,46 @@ process. `strerror` uses a per-thread buffer. The accept gate turns a connection
 flood into backpressure. Static files are capped at 8 MB so one request cannot
 choose an unbounded allocation.
 
+## WebSockets
+
+The handshake accepts version 13 only. A frame arriving from a client without a
+mask is a protocol error and closes the connection with `1002`, as the standard
+requires — an unmasked client frame is the signature of a cache-poisoning
+intermediary rather than a browser.
+
+Message size is bounded by `socket_max_message_bytes` across fragments, not per
+frame, so a peer cannot assemble an unbounded message out of small ones; passing
+it closes with `1009`. Control frames are held to 125 bytes and may not be
+fragmented. An idle socket is dropped after `socket_idle_timeout_ms`, and a
+frame that cannot be written within `socket_send_timeout_ms` closes the socket
+rather than blocking the task holding it.
+
+Rooms hold sockets only for the life of their connection: the server removes a
+socket from every room once its handler returns.
+
+## Rate limiting, CORS and CSRF
+
+The built-in stages are described in [Middleware](middleware.md). What matters
+here is what they are not: the rate limiter keys on `clientIp()` by default,
+which reads `X-Forwarded-For` and is therefore only as trustworthy as the proxy
+in front of it. Behind an untrusted network, key on something the client cannot
+choose.
+
+The CSRF guard is a double-submit cookie, minted from `/dev/urandom` and
+compared without an early exit. It defends against a browser posting from
+another origin; it is not authentication, and it does nothing about a token the
+client has leaked. If `/dev/urandom` cannot be opened the guard says so in the
+log and falls back to a clock-seeded sequence, which is weaker — treat that
+warning as a failure to fix rather than a note.
+
+Origins named in a CORS policy are merged into the security guard's allow-list
+during codegen, so the cross-origin check and the CORS headers cannot disagree
+about which origins are allowed.
+
 ## Not provided
 
-No TLS termination, authentication, session store, rate limiting or CSRF token
-scheme. Cataract expects a reverse proxy for TLS; rate limiting and
-authentication belong in middleware you write.
+No TLS termination, authentication or session store. Cataract expects a reverse
+proxy for TLS, and authentication belongs in middleware you write.
 
 Report security issues privately to the maintainers rather than in a public
 issue tracker.

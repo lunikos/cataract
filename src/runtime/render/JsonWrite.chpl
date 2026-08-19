@@ -3,7 +3,6 @@ module JsonWrite {
   private use CTypes;
   private use Math only isFinite;
 
-  /* Tracks only enough state to place commas; callers balance their own pairs. */
   record JsonBuilder {
     var buf: Bytes;
     var needsComma: bool = false;
@@ -71,7 +70,6 @@ module JsonWrite {
       needsComma = true;
     }
 
-    /* The caller owns validity. */
     proc ref rawValue(json: string) {
       separate();
       buf.append(json);
@@ -120,7 +118,6 @@ module JsonWrite {
     return !isFinite(v);
   }
 
-  /* Includes U+2028/U+2029: literal line terminators inside a <script> block. */
   proc escapeJson(s: string): string {
     const hex = "0123456789abcdef";
     const src = s.c_str(): c_ptrConst(uint(8));

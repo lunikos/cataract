@@ -9,7 +9,6 @@ module RouteParams {
     var text: string = "";
   }
 
-  /* [id] is one segment; [...rest] is the remainder and must come last. */
   proc compilePattern(pattern: string): list(Segment) throws {
     var segs: list(Segment);
     if pattern == "/" then return segs;
@@ -43,7 +42,6 @@ module RouteParams {
     return segs;
   }
 
-  /* Static beats dynamic at equal depth; deeper beats shallower; catch-all sinks. */
   proc specificityOf(const ref segs: list(Segment)): int {
     var score = segs.size * 100;
     for s in segs {

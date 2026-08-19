@@ -10,7 +10,6 @@ module RouteTable {
 
   enum RouteKind { page, api, socket }
 
-  /* Virtual, so a generated subclass carries per-route state. */
   class Handler {
     proc handle(ctx: Context): Response {
       return errorResponse(501, "handler not implemented");
@@ -44,8 +43,6 @@ module RouteTable {
     }
   }
 
-  /* Literal patterns hash; the rest walk a specificity-sorted list, so the first
-     structural match is the most specific one. */
   class Router {
     var routes: list(Route);
     var staticIndex: map(string, int);
@@ -86,7 +83,7 @@ module RouteTable {
             staticIndex[key] = i;
             staticMethodMask[key] = routes[i].methodMask;
           } else {
-            /* Merge, so 405 is reported only when no registration accepts it. */
+
             staticMethodMask[key] = (try! staticMethodMask[key]) | routes[i].methodMask;
           }
         }
@@ -160,7 +157,6 @@ module RouteTable {
                                ref captured: map(string, string)): bool {
     const hasCatchAll = segs.size > 0 && segs[segs.size - 1].kind == SegmentKind.catchAll;
 
-    /* One segment minimum: "/docs/[...path]" must not also answer "/docs". */
     if hasCatchAll {
       if parts.size < segs.size then return false;
     } else if parts.size != segs.size {

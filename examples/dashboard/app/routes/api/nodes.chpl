@@ -2,7 +2,6 @@ module ApiNodes {
   use Cataract;
   use Fleet;
 
-  /* Same tree as the pages: method handlers make this an API route. */
   proc get(ctx: Context): Response {
     const status = ctx.queryParam("status");
     if !status.isEmpty() && !Fleet.isKnownStatus(status) {

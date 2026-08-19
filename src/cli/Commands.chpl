@@ -226,8 +226,6 @@ module Commands {
     return 0;
   }
 
-  /* SIGTERM first, so the server drains what it is holding; SIGKILL only if the
-     grace period passes without it exiting. */
   private proc stopChild(ref child, graceMillis: int) throws {
     try {
       child.terminate();

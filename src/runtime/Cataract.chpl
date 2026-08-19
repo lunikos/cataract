@@ -1,4 +1,3 @@
-/* Public surface. Sockets, buffers and the C boundary are absent by design. */
 module Cataract {
   public use HttpMessage;
   public use HttpMethod only Method, methodName, effectiveMethod;
@@ -25,5 +24,5 @@ module Cataract {
                           debug as logDebug;
   public use HttpParser only Limits;
 
-  param version = "0.2.1";
+  param version = "0.3.0";
 }

@@ -1,6 +1,5 @@
 module JsonField {
-  /* A scanner, not a parser: one top-level scalar, no nesting. Offsets come from
-     `string.find` and stay in byte space throughout. */
+
   private proc after(payload: string, name: string): string throws {
     const key = "\"" + name + "\"";
     const at = payload.find(key);

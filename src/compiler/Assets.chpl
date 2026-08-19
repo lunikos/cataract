@@ -16,7 +16,6 @@ module Assets {
     var copied: int = 0;
   }
 
-  /* Addressed by query string, so a versioned URL stays distinguishable. */
   proc build(const ref cfg: ProjectConfig, root: string, const ref bundle: Bundle,
              ref diags: Bag): AssetTable throws {
     var table = new AssetTable();

@@ -59,7 +59,6 @@ module Build {
       }
     }
 
-    /* Passed as sources, not via -M: module names need not match file names. */
     for f in emitted.files do args.pushBack(f);
 
     var extraSources: list(string);
@@ -73,7 +72,6 @@ module Build {
     sort(sortedExtra);
     for f in sortedExtra do args.pushBack(f);
 
-    /* `--fast` costs more than it saves when every edit rebuilds. */
     if cfg.optimize && !devMode then args.pushBack("--fast");
     for flag in cfg.chplFlags.split(" ") do
       if !flag.strip().isEmpty() then args.pushBack(flag.strip());
@@ -127,8 +125,6 @@ module Build {
     }
   }
 
-  /* Only what `chpl` actually reads: a stylesheet reaches the binary through the
-     generated asset module, which is in this list, and nowhere else. */
   proc compileFingerprint(const ref cfg: ProjectConfig, root: string,
                           const ref emitted: Emitted, devMode: bool): string throws {
     var files: list(string);
@@ -192,9 +188,6 @@ module Build {
     return h:string;
   }
 
-  /* Still content-addressed, so reverting an edit is not a change and neither
-     is `touch`. Size and mtime only decide whether the file has to be reread,
-     which at four polls a second is most of the work the watcher does. */
   private var hashes: map(string, (int, int(64), string));
 
   private proc contentHash(path: string, size: int, stamp: int(64)): string throws {

@@ -5,7 +5,7 @@ module Cli {
   private use CliHost only red;
   private use Commands;
 
-  param VERSION = "0.2.1";
+  param VERSION = "0.3.0";
 
   proc usage(): string throws {
     return "cataract " + VERSION + "\n\n" +

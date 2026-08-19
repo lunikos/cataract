@@ -2,7 +2,6 @@ module PageNode {
   use Cataract;
   use Fleet;
 
-  /* Selects app/layouts/focus.chpl. */
   param layout = "focus";
 
   proc page(ctx: Context, ref meta: PageMeta): string {
@@ -42,7 +41,6 @@ module PageNode {
     return h.done();
   }
 
-  /* Declaring the island is what adds the client runtime to this page. */
   private proc uptimeIsland(ref meta: PageMeta, const ref node: Fleet.Node): string {
     var props = new JsonBuilder();
     props.beginObject();

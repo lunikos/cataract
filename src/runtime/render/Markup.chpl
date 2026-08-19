@@ -1,4 +1,3 @@
-/* Markup as Chapel: a tag stack, name validation, escaping on every value. */
 module Markup {
   private use ByteBuffer;
   private use Html only escape, stringify;
@@ -26,7 +25,6 @@ module Markup {
       endTag(tag);
     }
 
-    /* No tag argument: the stack knows it, so a mismatch is unrepresentable. */
     proc ref close() {
       if stack.isEmpty() {
         warn("Markup.close with no open element");
@@ -51,7 +49,6 @@ module Markup {
 
     proc ref text(const ref v) do buf.append(escape(stringify(v)));
 
-    /* Unescaped; the caller owns the safety of whatever it passes. */
     proc ref raw(s: string) do buf.append(s);
 
     proc ref comment(s: string) {
@@ -62,7 +59,6 @@ module Markup {
 
     proc depth(): int do return stack.size;
 
-    /* Closes what is still open, so an early return cannot truncate a document. */
     proc ref done(): string {
       while !stack.isEmpty() do close();
       return buf.toString();
@@ -88,7 +84,7 @@ module Markup {
     }
 
     proc ref writeAttr(name: string, value: string) {
-      /* Dropped, not sanitised: such a name came from somewhere it should not. */
+
       if !isName(name) {
         warn("Markup: refusing attribute name \"" + name + "\"");
         return;

@@ -7,7 +7,6 @@ module Pages {
     var body: string;
   }
 
-  /* Never mutated, so every task reads it without synchronisation. */
   private const docs = [
     new Doc("guide/install", "Guide", "Installing",
             "Chapel 2.x on a POSIX host, and nothing else.",

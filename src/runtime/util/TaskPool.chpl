@@ -1,13 +1,11 @@
 module TaskPool {
   private use Time;
 
-  /* `begin` is unbounded, so a flood would be unbounded task creation. */
   record Gate {
     var limit: int;
     var permits: sync int;
     var live: atomic int;
 
-    /* Explicit: a generated initializer would take the sync/atomic fields. */
     proc init(limit: int = 512) {
       this.limit = limit;
     }

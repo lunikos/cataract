@@ -35,7 +35,6 @@ module ApiPosts {
     return jsonResponse(body.done());
   }
 
-  /* `throws`, so an escaped error becomes a 500 rather than an unwind. */
   proc post(ctx: Context): Response throws {
     const payload = ctx.request.bodyText();
     if payload.isEmpty() then
@@ -59,7 +58,6 @@ module ApiPosts {
     return res;
   }
 
-  /* Minimal on purpose; a real application would use a JSON parser. */
   private proc extractField(payload: string, name: string): string throws {
     const key = "\"" + name + "\"";
     const at = payload.find(key);

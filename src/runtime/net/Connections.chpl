@@ -18,7 +18,7 @@ module Connections {
     var stop: int = 0;
     var readTimeoutMillis: int = 10000;
     var writeTimeoutMillis: int = 10000;
-    /* Absolute cutoff for one request; the per-recv timeout resets on every byte. */
+
     var readDeadlineMillis: int = -1;
     var outBuf: Bytes;
     var lastState: ReadState = ReadState.ok;

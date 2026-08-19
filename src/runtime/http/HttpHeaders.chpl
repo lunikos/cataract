@@ -8,7 +8,6 @@ module HttpHeaders {
     var value: string;
   }
 
-  /* Ordered, so multi-value fields survive; indexed for O(1) first lookup. */
   record Headers {
     var fields: list(Field);
     var lookup: map(string, int);
@@ -38,7 +37,6 @@ module HttpHeaders {
       return lookup.contains(name.toLower());
     }
 
-    /* A second Content-Length or Transfer-Encoding is a smuggling vector. */
     proc count(name: string): int {
       const key = name.toLower();
       var n = 0;
@@ -90,7 +88,6 @@ module HttpHeaders {
     }
   }
 
-  /* Header-Case normalisation: lower everything, uppercase after each hyphen. */
   proc canonical(name: string): string {
     var sb = "";
     var upper = true;
@@ -110,7 +107,6 @@ module HttpHeaders {
                                            decodePolicy.replace);
   }
 
-  /* Applied at write time: a handler cannot inject a header or split a response. */
   proc isSafeFieldValue(v: string): bool {
     for i in 0..<v.numBytes {
       const c = v.byte(i);

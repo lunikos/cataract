@@ -34,7 +34,6 @@ module ApiTask {
     return jsonResponse(b.done());
   }
 
-  /* `delete` is a Chapel keyword; DELETE is spelled `del`. */
   proc del(ctx: Context): Response {
     const id = ctx.paramInt("id", -1);
     if id < 0 then return problem(400, "id must be a positive integer");

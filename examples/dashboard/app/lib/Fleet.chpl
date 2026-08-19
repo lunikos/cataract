@@ -10,8 +10,6 @@ module Fleet {
     var uptimeHours: int;
   }
 
-  /* Read-only, so every task reads it unsynchronised; see examples/api for the
-     mutable case. */
   private const nodes: list(Node) = seeded();
 
   private proc seeded(): list(Node) {
@@ -47,7 +45,6 @@ module Fleet {
     return false;
   }
 
-  /* An empty filter matches everything. */
   iter matching(status: string, region: string) ref: Node {
     for n in nodes {
       if !status.isEmpty() && n.status != status then continue;

@@ -2,7 +2,6 @@ module RootLayout {
   use Cataract;
   use Fleet;
 
-  /* `renderDocument` runs after this, so `meta` set here still reaches <head>. */
   proc layout(ctx: Context, slot: string, ref meta: PageMeta): string {
     var h = new MarkupBuilder();
 

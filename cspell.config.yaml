@@ -49,6 +49,21 @@ words:
   - stylesheet
   - webp
 
+  # WebSockets, CORS and CSRF
+  - csrf
+  - preflight
+  - subprotocol
+  - subprotocols
+  - unmasked
+  - urandom
+  - websocket
+  - websockets
+
+  # SQL and the generated data layer
+  - autoincrement
+  - sqls
+  - urlencoded
+
   # Identifiers in this codebase
   - millis
   - redeployable

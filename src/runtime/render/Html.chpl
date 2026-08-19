@@ -14,7 +14,6 @@ module Html {
     }
     if !needs then return s;
 
-    /* Byte runs: codepoint indexing here would split multi-byte sequences. */
     const src = s.c_str(): c_ptrConst(uint(8));
     var sb = new Bytes();
     sb.reserve(s.numBytes + 16);

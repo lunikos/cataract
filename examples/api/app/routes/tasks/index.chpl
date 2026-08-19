@@ -41,7 +41,6 @@ module ApiTasks {
     return jsonResponse(b.done());
   }
 
-  /* `throws`, so an escaped error becomes a 500 rather than an unwind. */
   proc post(ctx: Context): Response throws {
     const payload = ctx.request.bodyText();
     if payload.isEmpty() then return problem(400, "expected a JSON body");

@@ -62,7 +62,8 @@ class attribute:
 {
   h.open("tr", "class", classList("warn", n.degraded, "down", n.offline));
   defer h.close();
-  // ...
+  h.el("td", n.id);
+  h.el("td", n.region);
 }
 ```
 
@@ -155,8 +156,9 @@ runtime.
 
 Island modules live in `app/islands/`, named by their file:
 
+In `app/islands/counter.js`:
+
 ```js
-// app/islands/counter.js
 import { defineIsland } from "cataract/client";
 
 defineIsland("counter", (el, props) => {
@@ -183,6 +185,64 @@ defineIsland("uptime", (el, props) => {
   return () => clearInterval(timer);
 });
 ```
+
+### Refreshing from an endpoint
+
+`islandFetch` renders the region on the server as before and records a URL the
+client can refresh it from. The page still works with JavaScript disabled,
+because the markup is complete before the fetch is attempted.
+
+```chapel
+var props = new JsonBuilder();
+props.beginObject();
+props.field("everyMillis", 5000);
+props.endObject();
+
+var rendered = new MarkupBuilder();
+rendered.open("dl", "class", "stats");
+stat(rendered, "nodes", Fleet.count());
+rendered.close();
+
+h.raw(islandFetch(meta, "fleet", props.done(), rendered.done(), "/api/nodes", 5000));
+```
+
+The last two arguments are the endpoint and an optional refresh interval in
+milliseconds; leave the interval out to fetch once on mount.
+
+The island returns an object with `update` instead of a cleanup function:
+
+```js
+defineIsland("fleet", (el, props) => {
+  const cells = new Map();
+  for (const stat of el.querySelectorAll("[data-stat]"))
+    cells.set(stat.dataset.stat, stat.querySelector("dd"));
+
+  return {
+    update(data) {
+      for (const node of data.nodes ?? [])
+        cells.get(node.status)?.replaceChildren(String(node.total));
+    },
+    destroy() {
+      cells.clear();
+    },
+  };
+});
+```
+
+| returned | meaning |
+| --- | --- |
+| a function | teardown, as before |
+| `{ update }` | called with the parsed JSON after each successful fetch |
+| `{ destroy }` | teardown |
+| nothing | neither |
+
+The request sends `Accept: application/json` with same-origin credentials. A
+rejected request, a status outside `2xx`, or a body that is not JSON leaves the
+server-rendered markup exactly as it arrived and warns once in the console — the
+page is never worse off for having tried. Unmounting clears the interval and
+aborts a request still in flight.
+
+An island with no `update` never fetches, whatever the markup says.
 
 Props must parse to a JSON object; anything else, or malformed JSON, is reported
 and replaced with `{}` rather than passed on. An island the server rendered but

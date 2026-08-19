@@ -17,7 +17,6 @@ module StaticFiles {
     var mime: string;
   }
 
-  /* Second guard: the parser collapsed ".." already, `resolve` re-rejects it. */
   class StaticFileServer: Middleware {
     var root: string;
     var mount: string = "/";
@@ -25,7 +24,6 @@ module StaticFiles {
     var cacheEnabled: bool = true;
     var maxCacheBytes: int = 33554432;
 
-    /* Files are read whole, so without a cap the client picks the allocation size. */
     var maxFileBytes: int = 8388608;
 
     var entries: map(string, CachedFile);
@@ -166,7 +164,6 @@ module StaticFiles {
     }
   }
 
-  /* Content-derived: an ETag must be stable across restarts and replicas. */
   @chplcheck.ignore("CamelCaseFunctions", "fnv1a is the algorithm's own name")
   proc fnv1a(const ref b: Bytes): uint(64) {
     var h: uint(64) = 0xcbf29ce484222325;

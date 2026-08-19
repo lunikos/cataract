@@ -1,4 +1,3 @@
-/* Byte-space helpers. Mixing a byte offset with a codepoint index corrupts. */
 module Text {
   private use CTypes;
 
@@ -24,7 +23,6 @@ module Text {
     return -1;
   }
 
-  /* Nothing can break out of the literal it is embedded in. */
   proc chplLiteral(s: string): string throws {
     var sb = "\"";
     var runStart = 0;

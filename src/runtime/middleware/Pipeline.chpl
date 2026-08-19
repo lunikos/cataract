@@ -2,7 +2,6 @@ module Pipeline {
   private use List;
   private use HttpMessage;
 
-  /* `before` may short-circuit; `after` always runs, in reverse entry order. */
   class Middleware {
     proc name(): string do return "middleware";
 

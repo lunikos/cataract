@@ -13,7 +13,7 @@ module HttpParser {
     var maxHeaderCount: int = 100;
     var maxBodyBytes: int = 1048576;
     var maxBufferBytes: int = 262144;
-    /* Whole-request budget: every byte restarts the per-recv timeout. */
+
     var requestTimeoutMillis: int = 20000;
   }
 
@@ -26,7 +26,6 @@ module HttpParser {
     var request: Request;
   }
 
-  /* Resumes where the last partial read stopped, so a drip is O(n) not O(n^2). */
   private proc findHeaderEnd(const ref b: [] uint(8), from: int, to: int): int {
     var i = from;
     while i + 3 < to {
@@ -130,7 +129,6 @@ module HttpParser {
       if count > limits.maxHeaderCount then
         return fail(431, "too many header fields");
 
-      /* obs-fold is obsolete and a documented request-smuggling vector. */
       const first = conn.inBuf[cursor];
       if first == 32 || first == 9 then
         return fail(400, "obsolete line folding rejected");
@@ -229,7 +227,6 @@ module HttpParser {
     const te = req.headers.get("Transfer-Encoding").toLower();
     const hasLength = req.headers.contains("Content-Length");
 
-    /* Both framing headers present is the classic smuggling setup. */
     if !te.isEmpty() && hasLength then return 400;
 
     if !te.isEmpty() {
@@ -287,7 +284,7 @@ module HttpParser {
       if total > limits.maxBodyBytes then return 413;
 
       if size == 0 {
-        /* Trailer section: consumed and discarded, never merged into headers. */
+
         while true {
           var te = findLineEnd(conn.inBuf, conn.start, conn.stop);
           while te == -1 {

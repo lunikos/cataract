@@ -37,7 +37,6 @@ module HttpMessage {
       return a.find(mime) != -1 || a.find("*/*") != -1;
     }
 
-    /* Spoofable unless a proxy overwrites it; never use for authorization. */
     proc clientIp(): string {
       const fwd = headers.get("X-Forwarded-For");
       if fwd.isEmpty() then return peerIp;
@@ -118,8 +117,6 @@ module HttpMessage {
     return new Response(status = 204);
   }
 
-  /* `detail` is escaped: it is a public parameter, so a handler could pass
-     request-derived text into it. */
   proc errorResponse(status: int, detail: string = ""): Response {
     const title = reason(status);
     const body = "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">" +
@@ -132,7 +129,6 @@ module HttpMessage {
     return r;
   }
 
-  /* What a handler sees: no file descriptors, no buffers, no C pointers. */
   record Context {
     var request: Request;
     var params: map(string, string);

@@ -10,7 +10,6 @@ module Sockets {
     override proc message(): string do return detail;
   }
 
-  /* A class, so `owned` closes it exactly once even on an error unwind. */
   class Socket {
     var fd: c_int;
     var peerIp: string;
@@ -77,7 +76,6 @@ module Sockets {
 
   proc shutdownRequested(): bool do return cat_shutdown_requested() != 0;
 
-  /* Idles in the kernel; the timeout only bounds how fast shutdown is noticed. */
   proc waitForConnection(const ref l: Listener, timeoutMillis: int) {
     if cat_wait_readable(l.fd, timeoutMillis: c_int) < 0 then
       Logging.debug("wait on the listener failed: " + errnoMessage());

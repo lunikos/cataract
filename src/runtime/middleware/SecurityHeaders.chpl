@@ -9,7 +9,6 @@ module SecurityHeaders {
     return configured + "," + fromCors;
   }
 
-  /* Hardening, plus the checks that must run before a handler does. */
   class SecurityGuard: Middleware {
     var contentSecurityPolicy: string =
       "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; " +

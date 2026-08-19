@@ -6,7 +6,6 @@ module PageNodes {
     const status = ctx.queryParam("status");
     const region = ctx.queryParam("region");
 
-    /* A filter the fleet cannot satisfy is a bad request, not an empty table. */
     if !status.isEmpty() && !Fleet.isKnownStatus(status) {
       meta.status = 400;
       meta.title = "Unknown status";

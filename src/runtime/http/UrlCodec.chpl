@@ -11,7 +11,6 @@ module UrlCodec {
     return -1;
   }
 
-  /* UTF-8 is reassembled only at the end, so escaped codepoints survive. */
   proc percentDecode(s: string, plusAsSpace: bool = false): string {
     var sb: [0..<(s.numBytes + 1)] uint(8);
     var n = 0;
@@ -99,7 +98,6 @@ module UrlCodec {
     return q;
   }
 
-  /* A NUL would truncate the path at any later C boundary. */
   proc hasControlBytes(s: string): bool {
     for i in 0..<s.numBytes {
       const c = s.byte(i);
@@ -119,7 +117,6 @@ module UrlCodec {
     return new TargetParts(try! target[..<q], try! target[(q + 1)..]);
   }
 
-  /* Runs on the decoded path; returns "" for a traversal attempt. */
   proc normalizePath(path: string): string {
     if path.isEmpty() || path.byte(0) != 47 then return "";
     var stack: list(string);
