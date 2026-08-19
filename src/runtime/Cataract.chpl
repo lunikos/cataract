@@ -9,6 +9,10 @@ module Cataract {
   public import Rooms;
   public use RouteParams only methodBit, maskAllows;
   public use Pipeline only Middleware, Chain;
+  public use Group only MiddlewareGroup;
+  public use RateLimit only RateLimiter;
+  public use Cors only CorsPolicy;
+  public use Csrf only CsrfGuard, csrfToken;
   public use Server only App, ServerConfig;
   public use Distribution only Affinity, ListenerMode, parseAffinity,
                                parseListenerMode, affinityName;

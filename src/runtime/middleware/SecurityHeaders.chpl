@@ -3,6 +3,12 @@ module SecurityHeaders {
   private use HttpMessage;
   private use HttpMethod;
 
+  proc joinOrigins(configured: string, fromCors: string): string {
+    if configured.strip().isEmpty() then return fromCors;
+    if fromCors.strip().isEmpty() then return configured;
+    return configured + "," + fromCors;
+  }
+
   /* Hardening, plus the checks that must run before a handler does. */
   class SecurityGuard: Middleware {
     var contentSecurityPolicy: string =

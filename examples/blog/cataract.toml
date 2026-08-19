@@ -27,6 +27,17 @@ log_level = "info"
 optimize = true
 chpl_flags = ""
 
+# Everything under /api is rate limited and needs a matching CSRF token.
+[middleware]
+groups = "api"
+
+[middleware.api]
+match = "/api"
+use = "rate-limit, csrf"
+rate_limit_requests = 60
+rate_limit_window_ms = 60000
+csrf_secure = false
+
 [security]
 csp = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
 hsts_seconds = 0

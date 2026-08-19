@@ -336,6 +336,112 @@ module Emit {
     return false;
   }
 
+  proc groupNames(const ref cfg: ProjectConfig): list(string) throws {
+    var names: list(string);
+    for raw in cfg.middlewareGroups.split(",") {
+      const name = raw.strip();
+      if !name.isEmpty() then names.pushBack(name);
+    }
+    return names;
+  }
+
+  private proc corsOrigins(const ref cfg: ProjectConfig): string throws {
+    var sb = cfg.setting("", "cors_origins");
+    for name in groupNames(cfg) {
+      const origins = cfg.setting(name, "cors_origins");
+      if origins.isEmpty() then continue;
+      if !sb.isEmpty() then sb += ",";
+      sb += origins;
+    }
+    return sb;
+  }
+
+  private proc middlewareStack(const ref cfg: ProjectConfig): string throws {
+    var sb = "";
+    if !cfg.middlewareUse.strip().isEmpty() then
+      sb += groupSource(cfg, "", "default", "/");
+    for name in groupNames(cfg) do
+      sb += groupSource(cfg, name, name, cfg.setting(name, "match", "/"));
+    return sb;
+  }
+
+  private proc groupSource(const ref cfg: ProjectConfig, key: string, title: string,
+                           prefix: string): string throws {
+    const declared = if key.isEmpty() then cfg.middlewareUse else cfg.setting(key, "use");
+    if declared.strip().isEmpty() then return "";
+
+    const handle = symbolFor("group_", title);
+    var sb = "    var " + handle + " = app.group(" + chplLiteral(title) + ", " +
+              chplLiteral(prefix) + ");\n";
+
+    for raw in declared.split(",") {
+      const stage = raw.strip().toLower();
+      if stage.isEmpty() then continue;
+      sb += "    {\n";
+      select stage {
+        when "rate-limit" do sb += rateLimitSource(cfg, key);
+        when "cors" do sb += corsSource(cfg, key);
+        when "csrf" do sb += csrfSource(cfg, key);
+        otherwise do ;
+      }
+      sb += "      " + handle + ".add(stage);\n";
+      sb += "    }\n";
+    }
+    sb += "\n";
+    return sb;
+  }
+
+  private proc rateLimitSource(const ref cfg: ProjectConfig, key: string): string throws {
+    var sb = "      var stage = new shared RateLimiter();\n";
+    sb += "      stage.requestsPerWindow = " +
+           cfg.settingInt(key, "rate_limit_requests", 60):string + ";\n";
+    sb += "      stage.windowMillis = " +
+           cfg.settingInt(key, "rate_limit_window_ms", 60000):string + ";\n";
+    sb += "      stage.burst = " +
+           cfg.settingInt(key, "rate_limit_burst", 0):string + ";\n";
+    sb += "      stage.keyHeader = " +
+           chplLiteral(cfg.setting(key, "rate_limit_key_header")) + ";\n";
+    return sb;
+  }
+
+  private proc corsSource(const ref cfg: ProjectConfig, key: string): string throws {
+    var sb = "      var stage = new shared CorsPolicy();\n";
+    sb += "      stage.allowedOrigins = " +
+           chplLiteral(cfg.setting(key, "cors_origins")) + ";\n";
+    sb += "      stage.allowedMethods = " +
+           chplLiteral(cfg.setting(key, "cors_methods",
+                                   "GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS")) +
+           ";\n";
+    sb += "      stage.allowedHeaders = " +
+           chplLiteral(cfg.setting(key, "cors_headers",
+                                   "Content-Type, Accept, Authorization, X-CSRF-Token")) +
+           ";\n";
+    sb += "      stage.exposedHeaders = " +
+           chplLiteral(cfg.setting(key, "cors_expose")) + ";\n";
+    sb += "      stage.allowCredentials = " +
+           (if cfg.settingBool(key, "cors_credentials", false) then "true" else "false") +
+           ";\n";
+    sb += "      stage.maxAgeSeconds = " +
+           cfg.settingInt(key, "cors_max_age", 600):string + ";\n";
+    return sb;
+  }
+
+  private proc csrfSource(const ref cfg: ProjectConfig, key: string): string throws {
+    var sb = "      var stage = new shared CsrfGuard();\n";
+    sb += "      stage.cookieName = " +
+           chplLiteral(cfg.setting(key, "csrf_cookie", "cataract_csrf")) + ";\n";
+    sb += "      stage.headerName = " +
+           chplLiteral(cfg.setting(key, "csrf_header", "X-CSRF-Token")) + ";\n";
+    sb += "      stage.fieldName = " +
+           chplLiteral(cfg.setting(key, "csrf_field", "_csrf")) + ";\n";
+    sb += "      stage.secureCookie = " +
+           (if cfg.settingBool(key, "csrf_secure", true) then "true" else "false") +
+           ";\n";
+    sb += "      stage.sameSite = " +
+           chplLiteral(cfg.setting(key, "csrf_same_site", "Lax")) + ";\n";
+    return sb;
+  }
+
   private proc databaseDirectory(const ref cfg: ProjectConfig, root: string): string throws {
     if cfg.databaseDir.isEmpty() then return "";
     return resolveIn(root, cfg.databaseDir);
@@ -411,8 +517,11 @@ module Emit {
       sb += "    guard.contentSecurityPolicy = " +
              chplLiteral(cfg.contentSecurityPolicy) + ";\n";
     sb += "    guard.hstsSeconds = hstsSeconds;\n";
-    sb += "    guard.allowedOrigins = allowedOrigins;\n";
+    sb += "    guard.allowedOrigins = joinOrigins(allowedOrigins, " +
+           chplLiteral(corsOrigins(cfg)) + ");\n";
     sb += "    app.addMiddleware(guard);\n\n";
+
+    sb += middlewareStack(cfg);
 
     sb += "    var files = new shared StaticFileServer(staticRoot, !devMode);\n";
     sb += "    app.addMiddleware(files);\n\n";

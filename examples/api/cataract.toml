@@ -27,6 +27,19 @@ path = "data"
 [build]
 optimize = true
 
+# Groups are matched by path prefix; the stages run in the order they are named.
+[middleware]
+groups = "api"
+
+[middleware.api]
+match = "/tasks"
+use = "cors, rate-limit"
+cors_origins = "https://tasks.example"
+cors_credentials = false
+rate_limit_requests = 30
+rate_limit_window_ms = 10000
+rate_limit_burst = 10
+
 # A service that returns no markup advertises nowhere to load any from.
 [security]
 csp = "default-src 'none'; frame-ancestors 'none'"

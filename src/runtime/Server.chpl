@@ -17,6 +17,7 @@ module Server {
   private use Ssr;
   private use JsonWrite;
   private use Distribution;
+  private use Group;
   private use Handshake;
   private use WebSockets;
   private use Rooms;
@@ -62,6 +63,12 @@ module Server {
 
     proc addMiddleware(in m: shared Middleware) {
       chain.add(m);
+    }
+
+    proc group(title: string, prefix: string = "/"): shared MiddlewareGroup {
+      var made = new shared MiddlewareGroup(title, prefix);
+      addMiddleware(made);
+      return made;
     }
 
     proc route(pattern: string, methodMask: int, kind: RouteKind, source: string,

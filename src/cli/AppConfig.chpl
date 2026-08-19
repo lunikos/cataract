@@ -1,4 +1,5 @@
 module AppConfig {
+  private use List;
   private use Map;
   private use IO;
   private use FileSystem;
@@ -49,6 +50,32 @@ module AppConfig {
     var contentSecurityPolicy: string = "";
     var hstsSeconds: int = 0;
     var allowedOrigins: string = "";
+
+    var middlewareGroups: string = "";
+    var middlewareUse: string = "";
+    var middleware: map(string, string);
+
+    proc setting(group: string, key: string, fallback: string = ""): string throws {
+      const full = if group.isEmpty() then key else group + "." + key;
+      if middleware.contains(full) then return middleware[full];
+      return fallback;
+    }
+
+    proc settingInt(group: string, key: string, fallback: int): int throws {
+      const raw = setting(group, key);
+      if raw.isEmpty() then return fallback;
+      try {
+        return raw: int;
+      } catch {
+        return fallback;
+      }
+    }
+
+    proc settingBool(group: string, key: string, fallback: bool): bool throws {
+      const raw = setting(group, key).toLower();
+      if raw.isEmpty() then return fallback;
+      return raw == "true" || raw == "1" || raw == "yes";
+    }
   }
 
   proc load(path: string, ref diags: Bag): ProjectConfig throws {
@@ -96,7 +123,33 @@ module AppConfig {
       diags.error(path, 0, "could not read config: " + e.message());
     }
 
+    validateMiddleware(cfg, path, diags);
     return cfg;
+  }
+
+  private proc validateMiddleware(const ref cfg: ProjectConfig, path: string,
+                                  ref diags: Bag) throws {
+    var declared: list(string);
+    declared.pushBack(cfg.middlewareUse);
+    for raw in cfg.middlewareGroups.split(",") {
+      const name = raw.strip();
+      if name.isEmpty() then continue;
+      const uses = cfg.setting(name, "use");
+      if uses.strip().isEmpty() then
+        diags.warn(path, 0, "middleware group \"" + name + "\" uses nothing",
+                   "add use = \"cors, rate-limit\" under [middleware." + name + "]");
+      declared.pushBack(uses);
+    }
+
+    for line in declared {
+      for raw in line.split(",") {
+        const stage = raw.strip().toLower();
+        if stage.isEmpty() then continue;
+        if stage != "rate-limit" && stage != "cors" && stage != "csrf" then
+          diags.error(path, 0, "unknown middleware \"" + stage + "\"",
+                      "the built-in stages are rate-limit, cors and csrf");
+      }
+    }
   }
 
   private proc stripComment(line: string): string throws {
@@ -181,12 +234,20 @@ module AppConfig {
       when "build.optimize" do cfg.optimize = toBool(value);
       when "build.chpl_flags" do cfg.chplFlags = value;
 
+      when "middleware.groups" do cfg.middlewareGroups = value;
+      when "middleware.use" do cfg.middlewareUse = value;
+
       when "security.csp" do cfg.contentSecurityPolicy = value;
       when "security.hsts_seconds" do
         cfg.hstsSeconds = toInt(value, cfg.hstsSeconds, path, line, diags);
       when "security.allowed_origins" do cfg.allowedOrigins = value;
 
-      otherwise do diags.warn(path, line, "unknown key \"" + key + "\"");
+      otherwise {
+        if key.startsWith("middleware.") then
+          cfg.middleware[key[11..]] = value;
+        else
+          diags.warn(path, line, "unknown key \"" + key + "\"");
+      }
     }
   }
 
