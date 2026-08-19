@@ -15,7 +15,7 @@ module Cataract {
   public use Html only escape;
   public use Markup only MarkupBuilder, classList;
   public use JsonWrite only JsonBuilder, jsonString, escapeJson;
-  public use Ssr only PageMeta, renderDocument, island, errorPage;
+  public use Ssr only PageMeta, renderDocument, island, islandFetch, errorPage;
   public use Logging only LogLevel, setLevel, parseLevel,
                           info as logInfo, warn as logWarn, error as logError,
                           debug as logDebug;

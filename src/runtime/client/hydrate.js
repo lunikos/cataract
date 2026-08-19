@@ -1,5 +1,7 @@
 const ISLAND_ATTR = "data-cataract-island";
 const PROPS_ATTR = "data-cataract-props";
+const SOURCE_ATTR = "data-cataract-src";
+const INTERVAL_ATTR = "data-cataract-every";
 
 const registry = new Map();
 const state = new WeakMap();
@@ -42,6 +44,48 @@ function readProps(el, name) {
   }
 }
 
+function readHandle(returned) {
+  if (typeof returned === "function") return { update: null, cleanup: returned };
+  if (returned && typeof returned === "object") {
+    return {
+      update: typeof returned.update === "function" ? returned.update : null,
+      cleanup: typeof returned.destroy === "function" ? returned.destroy : null,
+    };
+  }
+  return { update: null, cleanup: null };
+}
+
+// The server already rendered the region, so a failed fetch leaves it as it is.
+function refresh(el, entry) {
+  const source = el.getAttribute(SOURCE_ATTR);
+  if (!source || !entry.update) return;
+
+  entry.aborter = new AbortController();
+  fetch(source, {
+    headers: { Accept: "application/json" },
+    credentials: "same-origin",
+    signal: entry.aborter.signal,
+  })
+    .then((response) => {
+      if (!response.ok) throw new Error(`${response.status} from ${source}`);
+      return response.json();
+    })
+    .then((data) => {
+      if (state.get(el) !== entry) return;
+      entry.update(data);
+    })
+    .catch((err) => {
+      if (err.name === "AbortError") return;
+      warn(`island "${entry.name}" kept its server-rendered markup`, err);
+    });
+}
+
+function schedule(el, entry) {
+  const every = Number(el.getAttribute(INTERVAL_ATTR) ?? 0);
+  if (!Number.isFinite(every) || every <= 0) return;
+  entry.timer = setInterval(() => refresh(el, entry), every);
+}
+
 function mount(el) {
   // `failed` is kept, not cleared: retrying on every mutation only spams.
   if (state.has(el)) return;
@@ -53,20 +97,28 @@ function mount(el) {
     return;
   }
 
-  state.set(el, { name, cleanup: null });
+  const entry = { name, cleanup: null, update: null, timer: null, aborter: null };
+  state.set(el, entry);
   try {
-    const cleanup = factory(el, readProps(el, name));
-    if (typeof cleanup === "function") state.get(el).cleanup = cleanup;
+    const handle = readHandle(factory(el, readProps(el, name)));
+    entry.cleanup = handle.cleanup;
+    entry.update = handle.update;
   } catch (err) {
     state.set(el, { name, cleanup: null, failed: true });
     console.error(`[cataract] island "${name}" failed to mount`, err);
+    return;
   }
+
+  refresh(el, entry);
+  schedule(el, entry);
 }
 
 function unmount(el) {
   const entry = state.get(el);
   if (!entry) return;
   state.delete(el);
+  if (entry.timer) clearInterval(entry.timer);
+  if (entry.aborter) entry.aborter.abort();
   if (!entry.cleanup) return;
   try {
     entry.cleanup();

@@ -5,6 +5,8 @@ module Ssr {
   param clientRuntimePath = "/_cataract/client.js";
   param islandAttr = "data-cataract-island";
   param propsAttr = "data-cataract-props";
+  param sourceAttr = "data-cataract-src";
+  param intervalAttr = "data-cataract-every";
 
   record PageMeta {
     var title: string = "Cataract";
@@ -27,6 +29,20 @@ module Ssr {
     meta.needsClientRuntime = true;
     var b = new MarkupBuilder();
     b.open("div", islandAttr, name, propsAttr, propsJson);
+    b.raw(serverHtml);
+    return b.done();
+  }
+
+  proc islandFetch(ref meta: PageMeta, name: string, propsJson: string,
+                   serverHtml: string, endpoint: string,
+                   refreshMillis: int = 0): string {
+    meta.needsClientRuntime = true;
+    var b = new MarkupBuilder();
+    if refreshMillis > 0 then
+      b.open("div", islandAttr, name, propsAttr, propsJson, sourceAttr, endpoint,
+             intervalAttr, refreshMillis);
+    else
+      b.open("div", islandAttr, name, propsAttr, propsJson, sourceAttr, endpoint);
     b.raw(serverHtml);
     return b.done();
   }
