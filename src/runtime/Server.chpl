@@ -21,6 +21,7 @@ module Server {
   private use Handshake;
   private use WebSockets;
   private use Rooms;
+  private use Live;
   private use Map;
   private use Time only sleep;
 
@@ -218,11 +219,13 @@ module Server {
       var socket = new shared WebSocket(conn, ctx.request.path,
                                         settings.socketMaxMessageBytes,
                                         settings.socketSendTimeoutMillis,
-                                        settings.socketIdleTimeoutMillis);
+                                        settings.socketIdleTimeoutMillis,
+                                        shake.subprotocol);
       Logging.info("websocket open " + ctx.request.path + " " + socket.id);
       router.dispatchSocket(m.routeIndex, ctx, socket);
       socket.markClosed();
       Rooms.leaveAll(socket);
+      Live.forget(socket.id);
       Logging.info("websocket close " + socket.id);
       return true;
     }

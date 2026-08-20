@@ -55,7 +55,7 @@ module Rooms {
   }
 
   proc broadcast(room: string, payload: string, exceptId: string = ""): int {
-    var audience = snapshot(room);
+    var audience = occupants(room);
     var delivered = 0;
     var stale: list(string);
 
@@ -79,7 +79,7 @@ module Rooms {
     return total;
   }
 
-  private proc snapshot(room: string): list(shared WebSocket) {
+  proc occupants(room: string): list(shared WebSocket) {
     var audience: list(shared WebSocket);
     gate.readFE();
     defer gate.writeEF(true);
