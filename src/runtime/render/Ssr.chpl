@@ -1,4 +1,5 @@
 module Ssr {
+  private use Dom;
   private use Markup;
   private use List;
 
@@ -7,6 +8,7 @@ module Ssr {
   param propsAttr = "data-cataract-props";
   param sourceAttr = "data-cataract-src";
   param intervalAttr = "data-cataract-every";
+  param liveAttr = "data-cataract-live";
 
   record PageMeta {
     var title: string = "Cataract";
@@ -42,6 +44,34 @@ module Ssr {
     else
       b.open("div", islandAttr, name, propsAttr, propsJson, sourceAttr, endpoint);
     b.raw(serverHtml);
+    return b.done();
+  }
+
+  proc islandLive(ref meta: PageMeta, const ref tree: DomTree, socketPath: string,
+                  refreshMillis: int = 0): string {
+    meta.needsClientRuntime = true;
+    var b = new MarkupBuilder();
+    if refreshMillis > 0 then
+      b.open("div", liveAttr, socketPath, intervalAttr, refreshMillis,
+             pathAttr, tree.rootPath());
+    else
+      b.open("div", liveAttr, socketPath, pathAttr, tree.rootPath());
+    b.raw(renderInner(tree));
+    return b.done();
+  }
+
+  proc islandLive(ref meta: PageMeta, name: string, propsJson: string,
+                  const ref tree: DomTree, socketPath: string,
+                  refreshMillis: int = 0): string {
+    meta.needsClientRuntime = true;
+    var b = new MarkupBuilder();
+    if refreshMillis > 0 then
+      b.open("div", islandAttr, name, propsAttr, propsJson, liveAttr, socketPath,
+             intervalAttr, refreshMillis, pathAttr, tree.rootPath());
+    else
+      b.open("div", islandAttr, name, propsAttr, propsJson, liveAttr, socketPath,
+             pathAttr, tree.rootPath());
+    b.raw(renderInner(tree));
     return b.done();
   }
 

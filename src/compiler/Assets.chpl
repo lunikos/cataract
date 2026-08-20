@@ -50,8 +50,6 @@ module Assets {
   private proc buildClientBundle(const ref cfg: ProjectConfig, root: string,
                                  const ref bundle: Bundle, publicOut: string,
                                  ref table: AssetTable, ref diags: Bag) throws {
-    if bundle.islands.isEmpty() then return;
-
     const runtimeJs = joinPath(resolveRuntime(cfg, root), "client/hydrate.js");
     if !isFile(runtimeJs) {
       diags.error(runtimeJs, 0, "client runtime not found",
