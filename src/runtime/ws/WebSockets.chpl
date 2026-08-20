@@ -5,6 +5,7 @@ module WebSockets {
   private use Connections;
   private use ByteBuffer;
   private use HttpClock only monoMillis;
+  private use Mutations only DELTA_PROTOCOL;
   private use Logging;
   private use Time only sleep;
 
@@ -27,6 +28,7 @@ module WebSockets {
     var id: string;
     var path: string;
     var peer: string;
+    var subprotocol: string;
     var fd: c_int;
     var conn: borrowed Connection;
     var maxMessageBytes: int = 1048576;
@@ -37,11 +39,13 @@ module WebSockets {
     var closeSent: atomic bool;
 
     proc init(conn: borrowed Connection, path: string, maxMessageBytes: int = 1048576,
-              sendTimeoutMillis: int = 10000, idleTimeoutMillis: int = 300000) {
+              sendTimeoutMillis: int = 10000, idleTimeoutMillis: int = 300000,
+              subprotocol: string = "") {
       this.id = conn.peerIp() + ":" + conn.peerPort():string + "/" +
                 socketCounter.fetchAdd(1):string;
       this.path = path;
       this.peer = conn.peerIp();
+      this.subprotocol = subprotocol;
       this.fd = conn.descriptor();
       this.conn = conn;
       this.maxMessageBytes = maxMessageBytes;
@@ -53,6 +57,8 @@ module WebSockets {
     }
 
     proc isOpen(): bool do return liveFlag.read();
+
+    proc wantsDelta(): bool do return subprotocol == DELTA_PROTOCOL;
 
     proc markClosed() do liveFlag.write(false);
 

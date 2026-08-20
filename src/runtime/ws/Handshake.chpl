@@ -2,6 +2,7 @@ module Handshake {
   private use HttpMessage;
   private use HttpMethod;
   private use Digest only sha1Base64;
+  private use Mutations only DELTA_PROTOCOL;
 
   param WEBSOCKET_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
   param SUPPORTED_VERSION = "13";
@@ -39,7 +40,7 @@ module Handshake {
     }
 
     result.subprotocol = chooseProtocol(req.header("Sec-WebSocket-Protocol"),
-                                        offeredProtocols);
+                                        withBuiltins(offeredProtocols));
 
     var head = "HTTP/1.1 101 Switching Protocols\r\n";
     head += "Upgrade: websocket\r\n";
@@ -53,6 +54,11 @@ module Handshake {
     result.status = 101;
     result.accepted = true;
     return result;
+  }
+
+  proc withBuiltins(offered: string): string {
+    if offered.strip().isEmpty() then return DELTA_PROTOCOL;
+    return offered + "," + DELTA_PROTOCOL;
   }
 
   private proc chooseProtocol(requested: string, offered: string): string {
