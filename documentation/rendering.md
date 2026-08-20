@@ -233,6 +233,7 @@ defineIsland("fleet", (el, props) => {
 | --- | --- |
 | a function | teardown, as before |
 | `{ update }` | called with the parsed JSON after each successful fetch |
+| `{ patched }` | called after a batch of live mutations is applied |
 | `{ destroy }` | teardown |
 | nothing | neither |
 
@@ -244,16 +245,38 @@ aborts a request still in flight.
 
 An island with no `update` never fetches, whatever the markup says.
 
+### Driving a region from a socket
+
+`islandFetch` polls for JSON and lets the island decide what to write.
+`islandLive` inverts that: the server keeps a tree of the region, and sends the
+difference between renders as binary mutations the runtime applies directly.
+
+```chapel
+h.raw(islandLive(meta, statsTree(), "/ws/fleet", 2000));
+```
+
+The region is built with `DomBuilder` rather than `MarkupBuilder`, and every
+element in it is rendered carrying a `data-path` attribute — the address a
+mutation names. The page is complete before the socket opens, as with every
+other island, and a region needs no island script at all unless it wants one.
+
+The interval is how often the runtime asks the server for an update, and an
+island on the same element may return `patched()` to run after a batch lands.
+The protocol, the `Live` API and the fallback for a client that cannot read it
+are in [WebSockets and rooms](realtime.md#live-regions).
+
 Props must parse to a JSON object; anything else, or malformed JSON, is reported
 and replaced with `{}` rather than passed on. An island the server rendered but
 no script defines warns once and is left as rendered, which is otherwise a silent
 no-op that is hard to place.
 
 `app/islands/*.js` are concatenated with the client runtime into
-`/_cataract/client.js`. The `import` naming `cataract/client` is stripped during
-concatenation — the bundle has no module graph, and `defineIsland` is already in
-scope. Keeping the import means the file stays a valid ES module that an editor
-and a real bundler both understand.
+`/_cataract/client.js`, which is emitted whether or not the project has any,
+because a live region needs the runtime and may declare no island. The `import`
+naming `cataract/client` is stripped during concatenation — the bundle has no
+module graph, and `defineIsland` is already in scope. Keeping the import means
+the file stays a valid ES module that an editor and a real bundler both
+understand.
 
 The runtime mounts on `DOMContentLoaded`, then watches the document with a
 `MutationObserver`, so islands introduced later by another island's DOM writes

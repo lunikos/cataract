@@ -81,6 +81,16 @@ returns, and the framing codec reads through the same sliding-window buffer the
 HTTP parser uses. Writes go straight to the descriptor behind a per-socket lock,
 which is what lets another task broadcast into a socket it does not own.
 
+A live region is the one place the server keeps per-connection state. `Live`
+holds the last `DomTree` sent to each socket id, so a diff is against what that
+socket is actually showing rather than against a shared last-known state; two
+watchers that joined a minute apart are each sent only their own difference.
+Node addresses are positional hashes rather than allocated identifiers, which is
+what keeps the two sides in agreement with no handshake beyond the subprotocol
+and no manifest on the wire. A socket with no tree is sent a full render, so
+reconnection needs no sequence numbers, and the entry is dropped where the
+socket leaves its rooms.
+
 `--staticOut` reuses the request path rather than shadowing it. Each exported
 path is turned into a synthetic `Request`, run through `App.handle`, and written
 to disk, so the exported document is the one the server would have sent.
@@ -284,7 +294,16 @@ frame that cannot be written within `socket_send_timeout_ms` closes the socket
 rather than blocking the task holding it.
 
 Rooms hold sockets only for the life of their connection: the server removes a
-socket from every room once its handler returns.
+socket from every room once its handler returns, and drops its live tree at the
+same point.
+
+Mutation operands carry server-rendered HTML, applied with `insertAdjacentHTML`
+and `innerHTML`. `DomBuilder` has no `raw`, so every node in a live region goes
+through the same escaping and name validation `MarkupBuilder` applies, and there
+is no path by which request data reaches the client unescaped. The client
+applies whatever a mutation frame says without validating it, which is the same
+trust boundary as the HTML the server already sends — a socket is only as
+trustworthy as the origin that opened it.
 
 ## Rate limiting, CORS and CSRF
 

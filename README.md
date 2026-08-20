@@ -50,6 +50,15 @@ proc socket(ctx: Context, ws: shared WebSocket) throws {
 }
 ```
 
+A region of a page can be driven from one. The server keeps a virtual DOM per
+socket, diffs it against the next render, and sends the difference as binary
+mutations rather than re-rendered HTML — a tick that moves five numbers costs
+40 bytes where the markup costs about two kilobytes.
+
+```chapel
+h.raw(islandLive(meta, statsTree(), "/ws/fleet", 2000));
+```
+
 What the toolchain works out before the server runs:
 
 - **routes** — the tree under `app/routes` is the route table, and every route
@@ -87,8 +96,9 @@ reconfigurable without a rebuild: `./dist/blog --port=8080 --logLevel=debug`.
 Four standalone projects under [`examples/`](examples): `blog` (the full stack,
 reverse-routed links, a CSRF-guarded API), `api` (headless JSON on a generated
 schema), `docs` (catch-all routes, route groups, two layouts, static export) and
-`dashboard` (a WebSocket room, an island that refreshes itself). `make examples`
-builds all four; `make run-blog` runs one and `make static` exports one.
+`dashboard` (a WebSocket room, an island that refreshes itself, a live region
+patched over the mutation protocol). `make examples` builds all four;
+`make run-blog` runs one and `make static` exports one.
 
 ## Contributing
 
@@ -98,4 +108,4 @@ Chapel sources carry no comments — names and structure are the explanation, an
 anything that needs prose belongs in `documentation/`. Open an issue before
 changing the public API, and report security issues privately.
 
-Version 0.3.0. The public API is not yet stable.
+Version 0.3.1. The public API is not yet stable.

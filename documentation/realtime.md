@@ -62,8 +62,10 @@ one.
 | `ping(payload = "")` | a ping frame |
 | `closeWith(code, why)` | sends a close frame and marks the socket closed |
 | `isOpen()` | whether the socket is still usable |
+| `wantsDelta()` | whether the client negotiated the binary mutation protocol |
 | `id` | `ip:port/n`, unique for the life of the process |
 | `path` | the path the socket was opened on |
+| `subprotocol` | the subprotocol agreed at the handshake, or `""` |
 
 `receive` handles the protocol below the application: a `ping` is answered with
 a `pong` and the loop continues, a `close` ends it, and continuation frames are
@@ -88,6 +90,7 @@ Rooms.join("lobby", ws);          // add a socket to a room
 Rooms.leave("lobby", ws);         // remove it from one room
 Rooms.leaveAll(ws);               // remove it from every room
 Rooms.occupancy("lobby");         // how many sockets are in it
+Rooms.occupants("lobby");         // the sockets themselves, copied
 Rooms.names();                    // every room with at least one member
 Rooms.broadcast("lobby", text);   // send to all of them, returns the count
 Rooms.broadcast("lobby", text, ws.id);   // ...except one
@@ -107,6 +110,176 @@ Rooms are per-locale state. With `listeners = "per-locale"` each locale keeps
 its own registry, so a broadcast reaches the sockets that locale accepted — see
 [Distribution](deployment.md#locales-and-affinity).
 
+## Live regions
+
+`Rooms.broadcast` sends text, and a region that changes on the server is
+usually sent as re-rendered HTML — a couple of kilobytes to move four numbers.
+A live region describes the region instead of serialising it: the server builds
+the same tree twice, diffs the two, and sends only what moved, as binary.
+
+### Describing the region
+
+`DomBuilder` takes the calls `MarkupBuilder` takes, and records a tree instead
+of appending bytes.
+
+| method | effect |
+| --- | --- |
+| `open(tag)` / `open(tag, name, value, ...)` | opens an element, pushes it |
+| `close()` | closes the innermost open element |
+| `el(tag, content)` / `el(tag, content, name, value, ...)` | open, text, close |
+| `text(value)` | a text node; any type with a `: string` cast |
+| `attr(name, value)` | one attribute on the innermost open element |
+| `depth()` | number of elements currently open |
+| `done()` | closes anything still open, returns the `DomTree` |
+
+There is no `raw`. A live region is only diffable if the server built every
+node in it, so the escape hatch is deliberately absent.
+
+```chapel
+proc statsTree(): DomTree {
+  var d = new DomBuilder();
+
+  d.open("dl", "class", "stats");
+  cell(d, "watching", Rooms.occupancy(room));
+  cell(d, "healthy", Fleet.countByStatus("healthy"));
+  d.close();
+
+  return d.done();
+}
+```
+
+### Rendering it
+
+`islandLive` puts the tree in the document and names the socket that will
+update it. It is the `island` of live regions: it sets
+`meta.needsClientRuntime`, and the page still renders completely without
+JavaScript.
+
+```chapel
+h.raw(islandLive(meta, statsTree(), "/ws/fleet", 2000));
+```
+
+The last argument is how often the client asks for an update, in milliseconds;
+leave it out and the client asks for nothing after the first render. An
+overload takes an island name and props first, for a region that also wants a
+factory of its own:
+
+```chapel
+h.raw(islandLive(meta, "fleet", props.done(), statsTree(), "/ws/fleet", 2000));
+```
+
+Every element in a live region is rendered with a `data-path` attribute. That
+number is the address a mutation names, derived from the element's position in
+the tree, so both sides agree on it without exchanging a manifest.
+
+### Updating it
+
+`Live` keeps the last tree it sent to each socket and diffs against that one.
+
+```chapel
+proc socket(ctx: Context, ws: shared WebSocket) throws {
+  Rooms.join(room, ws);
+  defer {
+    Rooms.leave(room, ws);
+    Live.broadcast(room, statsTree());
+  }
+
+  Live.push(ws, statsTree());
+  Live.broadcast(room, statsTree(), ws.id);
+
+  var incoming = new Message();
+  while ws.receive(incoming) {
+    select incoming.text().strip() {
+      when "tick" do Live.push(ws, statsTree());
+      otherwise do Live.broadcast(room, statsTree());
+    }
+  }
+}
+```
+
+| member | effect |
+| --- | --- |
+| `Live.push(ws, tree)` | diff against that socket's tree and send; returns bytes sent |
+| `Live.broadcast(room, tree)` | push one tree to every socket in a room |
+| `Live.broadcast(room, tree, exceptId)` | ...except one |
+| `Live.forget(id)` | drop a socket's tree; the server calls it when a handler returns |
+| `Live.tracked()` | how many sockets have a tree |
+
+`push` returns `0` when nothing changed, and sends no frame — an idle tick
+costs nothing. It returns `-1` if the socket is closed or the write failed.
+
+Because each socket has its own tree, `broadcast` is not one frame fanned out:
+each watcher is sent what that watcher had not already seen. A socket with no
+tree — a first connect, or a reconnect after a drop — is sent a full render, so
+resynchronising is the same path as connecting.
+
+`tick` above is the message the client runtime sends on the interval
+`islandLive` recorded. A handler is free to ignore it and push on its own
+schedule instead.
+
+### The wire
+
+Each mutation is a header and an operand, appended into one binary frame.
+
+| bytes | field |
+| --- | --- |
+| `0` | opcode |
+| `1..2` | path, big-endian `uint16` |
+| `3..4` | operand length, big-endian `uint16` |
+| `5..` | operand |
+
+| opcode | name | operand | applied as |
+| --- | --- | --- | --- |
+| `0x01` | set text | the text | `textContent` |
+| `0x02` | set attribute | `[nameLen: uint8][name][value]` | `setAttribute` |
+| `0x03` | remove attribute | the name | `removeAttribute` |
+| `0x04` | insert node | `[index: uint16][html]` | inserted at that child index |
+| `0x05` | remove node | empty | `remove()` |
+| `0x06` | replace node | the html | inserted before it, then it is removed |
+| `0xff` | full render | the region's html | `innerHTML` on the region root |
+
+A five-byte header means a changed count costs six bytes on the wire. On the
+dashboard's region a first connect costs about 1.9 KB, a tick that moves five
+readings costs 40 bytes, and a watcher joining costs the others six.
+
+A delta larger than `deltaCeilingBytes` — 4 KB by default — is replaced by a
+full render, on the grounds that a diff that big is no longer a diff.
+
+### The client
+
+The runtime opens the socket, indexes the region by `data-path`, and applies
+what arrives. Operations are queued and applied inside one
+`requestAnimationFrame`, so a burst of frames costs one layout pass rather than
+one each. The index is kept current as structural operations land, so a
+mutation may address a node an earlier one in the same batch created.
+
+A closed socket reconnects with exponential backoff up to thirty seconds. No
+state is carried across the gap: the new socket has no tree on the server and
+is answered with a full render.
+
+An island on the same element may return `patched()` alongside `destroy()`,
+which runs after each batch is applied.
+
+### Falling back
+
+The capability is a WebSocket subprotocol, `cataract.delta.v1`, offered by the
+server on every socket route and asked for by the client runtime. A client that
+does not ask for it — an older bundle, `curl`, anything hand-written — is sent
+the region's HTML as a text frame instead, and `ws.wantsDelta()` says which one
+a handler is talking to.
+
+### What it does not do
+
+The diff is positional, not keyed. Changing a value in place, appending to a
+list or truncating one produces the minimal set of operations; reordering a
+list rewrites the rows that moved rather than moving them. A changed tag, or
+text moving inside an element that also holds elements, replaces that subtree.
+
+Node addresses are sixteen bits derived from position. Collisions inside one
+tree are probed around, and an address that shifts between renders is answered
+with a subtree replace, so a collision costs bytes rather than correctness — but
+a region of thousands of elements is not what this is for.
+
 ## Configuration
 
 ```toml
@@ -116,6 +289,9 @@ socket_idle_timeout_ms = 300000      # silence before the socket is dropped
 socket_send_timeout_ms = 10000       # how long one frame may take to write
 socket_subprotocols = ""             # comma-separated, negotiated if the client asks
 ```
+
+`cataract.delta.v1` is offered in addition to whatever this names, and cannot
+be turned off; a client that does not ask for it is unaffected.
 
 Each is a `config const` on the built binary as well:
 
@@ -148,7 +324,11 @@ defineIsland("chat", (el) => {
 
 ## A worked example
 
-`examples/dashboard` serves `/ws/fleet`. It joins the `fleet` room, sends a
-snapshot of the node table on connect, answers `snapshot` and `presence`
-commands, and broadcasts anything else to the other watchers. Build and run it,
-then open two browser tabs against the page to watch presence change.
+`examples/dashboard` serves `/ws/fleet`. The overview page renders the live
+region with `islandLive`; the socket joins the `fleet` room, pushes a full
+render on connect, answers each `tick` with a delta, and broadcasts when a
+watcher joins or leaves. `FleetView.statsTree` is the single description both
+the page and the socket render from.
+
+Build and run it, open two browser tabs, and watch the `watching` count move in
+both. `--logLevel=debug` prints the size of each delta as it goes out.
