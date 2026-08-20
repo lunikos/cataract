@@ -78,9 +78,7 @@ module Markup {
     proc ref endTag(tag: string) {
       buf.append(">");
       const name = tag.toLower();
-      var isVoid = false;
-      for v in voidTags do if v == name then isVoid = true;
-      if !isVoid then stack.pushBack(name);
+      if !isVoidTag(name) then stack.pushBack(name);
     }
 
     proc ref writeAttr(name: string, value: string) {
@@ -97,7 +95,13 @@ module Markup {
     }
   }
 
-  private proc isName(s: string): bool {
+  proc isVoidTag(tag: string): bool {
+    const name = tag.toLower();
+    for v in voidTags do if v == name then return true;
+    return false;
+  }
+
+  proc isName(s: string): bool {
     if s.isEmpty() then return false;
     for i in 0..<s.numBytes {
       const c = s.byte(i);
