@@ -1,6 +1,7 @@
 module PageIndex {
   use Cataract;
   use Fleet;
+  use FleetView;
 
   proc page(ctx: Context, ref meta: PageMeta): string {
     meta.title = "Fleet overview";
@@ -9,6 +10,11 @@ module PageIndex {
     var h = new MarkupBuilder();
     h.el("h1", "Overview");
     h.raw(counts(meta));
+
+    h.el("h2", "Live");
+    h.open("section", "class", "live");
+    h.raw(islandLive(meta, statsTree(), "/ws/fleet", FleetView.stepMillis));
+    h.close();
 
     h.el("h2", "Regions");
     h.open("ul", "class", "regions");
